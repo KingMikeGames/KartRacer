@@ -210,3 +210,6 @@ FakesAssemblies/
 
 # Visual Studio 6 workspace options file
 *.opt
+Content/FantasyEnvironment/Maps/Showcase.umap
+Content/FantasyEnvironment/Maps/Showcase2.umap
+Content/FantasyEnvironment/Maps/Showcase3.umap
