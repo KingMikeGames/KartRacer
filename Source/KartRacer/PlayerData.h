@@ -23,9 +23,23 @@ public:
 		int32 PlayerLevel;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		int32 ExperiencePoints;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerInfo)
 		int32 TrueSkill;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		int32 WinStreak;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		float ExpMultiplier;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerInfo)
 		UTexture2D* PlayerImage;
 	
+	UFUNCTION(BlueprintCallable, Category = PlayerInfo)
+		int32 AddExperience(int32 points);
+
+	UFUNCTION(BlueprintCallable, Category = PlayerInfo)
+		int32 LevelUp();
 };
