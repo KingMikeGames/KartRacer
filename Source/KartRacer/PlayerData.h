@@ -8,7 +8,36 @@
 /**
  * 
  */
-UCLASS()
+
+
+
+USTRUCT(BlueprintType)
+struct FInventoryStruct
+{
+
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+		TArray<int32> BodyInventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+		TArray<int32> WheelInventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+		TArray<int32> PoofInventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+		TArray<int32> TrailInventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+		TArray<int32> TrickInventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+		TArray<int32> SparkInventory;
+};
+
+
+UCLASS(Blueprintable)
 class KARTRACER_API UPlayerData : public UObject
 {
 	GENERATED_BODY()

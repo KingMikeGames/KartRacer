@@ -113,6 +113,31 @@ struct FSparkStruct
 		UParticleSystem* RSparkParticle;
 };
 
+UENUM(BlueprintType)		//"BlueprintType" is essential to include
+enum class ETabEnum : uint8
+{
+	VE_Body 	UMETA(DisplayName = "Body"),
+	VE_Wheel 	UMETA(DisplayName = "Wheel"),
+	VE_Spark	UMETA(DisplayName = "Spark"),
+	VE_Trail	UMETA(DisplayName = "Trail"),
+	VE_Poof		UMETA(DisplayName = "Poof"),
+	VE_Trick	UMETA(DisplayName = "Trick")
+};
+
+UENUM(BlueprintType)		//"BlueprintType" is essential to include
+enum class ESortType : uint8
+{
+	VE_AlphaNumeric 	UMETA(DisplayName = "AlphaNumeric"),
+	VE_Rarity 			UMETA(DisplayName = "Rarity")
+};
+
+UENUM(BlueprintType)		//"BlueprintType" is essential to include
+enum class EDirection : uint8
+{
+	VE_Ascending	UMETA(DisplayName = "Ascending"),
+	VE_Descending 	UMETA(DisplayName = "Descending"),
+};
+
 UCLASS(Blueprintable)
 class KARTRACER_API ULootDatabase : public UObject
 {
@@ -153,4 +178,8 @@ public:
 		FTrickStruct GetTrickByID(int32 ID);
 	UFUNCTION(BlueprintCallable, Category = "Database")
 		FSparkStruct GetSparkByID(int32 ID);
+
+	// Loot Sorting
+	UFUNCTION(BlueprintCallable, Category = "ArraySorting")
+		TArray<int32> SortInventory(TArray<int32> Items, ETabEnum Type, ESortType SortType, EDirection Direction);
 };
