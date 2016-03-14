@@ -25,7 +25,10 @@ ABaseKart::ABaseKart() :
 	m_MaxTurnRadius(4000),
 	m_AccelerationForce(2500),
 	m_ReverseForce(1250),
-	m_BreakForce(2500)
+	m_BreakForce(2500),
+	m_InTrickVolume(false),
+	m_CanTrick(true),
+	m_TrickForce(500.0f)
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -120,8 +123,10 @@ void ABaseKart::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 	InputComponent->BindAxis("Accelerate", this, &ABaseKart::ApplyGasBreak);
 	InputComponent->BindAxis("Turn", this, &ABaseKart::Turn);
 
-	InputComponent->BindAction("LookBack", IE_Pressed, this, &ABaseKart::LookBack);
-	InputComponent->BindAction("DriftHop", IE_Pressed, this, &ABaseKart::DriftHop);
+	InputComponent->BindAction("LookBack", IE_Pressed, this, &ABaseKart::LookBackPressed);
+	InputComponent->BindAction("LookBack", IE_Released, this, &ABaseKart::LookBackReleased);
+	InputComponent->BindAction("DriftHop", IE_Pressed, this, &ABaseKart::HopPressed);
+	InputComponent->BindAction("DriftHop", IE_Released, this, &ABaseKart::HopReleased);
 	InputComponent->BindAction("UseItem", IE_Pressed, this, &ABaseKart::UseItem);
 }
 
@@ -135,6 +140,21 @@ void ABaseKart::ApplyForwardForce(float Force)
 void ABaseKart::ApplyForce(FVector Force)
 {
 	CollisionMesh->AddForce(Force, NAME_None, true);
+}
+
+void ABaseKart::ApplyForwardImpulse(float Force)
+{
+	CollisionMesh->AddImpulse(CollisionMesh->GetForwardVector() * Force, NAME_None, true);
+}
+
+void ABaseKart::ApplyImpulse(FVector Force)
+{
+	CollisionMesh->AddImpulse(Force, NAME_None, true);
+}
+
+void ABaseKart::SpawnTrickEmitter_Implementation()
+{
+
 }
 
 void ABaseKart::ResetRotation()
@@ -224,10 +244,18 @@ void ABaseKart::DealWithGravity()
 		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, "Not Grounded");
 	}
 }
+#pragma region Turning
 
+void ABaseKart::Turn(float AxisValue)
+{
+
+
+	ServerRPCSendTurnAxis(FMath::Clamp(AxisValue, -1.0f, 1.0f));
+	PerformTurning(FMath::Clamp(AxisValue, -1.0f, 1.0f));
+}
 void ABaseKart::ServerRPCSendTurnAxis_Implementation(float TurnAxis)
 {
-	
+
 	MulticastRPCTurnAxis(TurnAxis);
 
 }
@@ -246,9 +274,57 @@ void ABaseKart::MulticastRPCTurnAxis_Implementation(float TurnAxis)
 		PerformTurning(TurnAxis);
 	}
 }
+void ABaseKart::PerformTurning(float AxisValue)
+{
 
 
+	if (IsGrounded())
+	{
+		if (m_Drifting)
+		{
+			// The turn axis is modified based on whether the kart is turning
+			// with or against a drift
+			float ModifiedDriftAxis = 0;
 
+			if (AxisValue / FMath::Abs(AxisValue) == m_DriftDirection / FMath::Abs(m_DriftDirection))
+			{
+				ModifiedDriftAxis = AxisValue * m_OuterDriftControlModifier;
+			}
+			else {
+				ModifiedDriftAxis = AxisValue * m_InnerDriftControlModifier;
+			}
+
+			CollisionMesh->AddLocalRotation(FRotator(0.0f, 0.0f, (m_DriftDirection * -m_AutomaticDriftRotation + ModifiedDriftAxis * m_OverallDriftControllModifier) * GetWorld()->GetDeltaSeconds()));
+		}
+		else { // if not drifting
+
+
+			float ForwardReverseModifier = 1;
+			if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) < 0)
+			{
+				ForwardReverseModifier = -1;
+			}
+
+			float TurnAmount = 0;
+			float TurnLimiter = FMath::GetMappedRangeValueClamped(FVector2D(m_MaxSpeedForMaxTurnRadius, m_MaxSpeed), FVector2D(m_MinTurnRadius, m_MaxTurnRadius), FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()));
+			TurnAmount = FMath::RadiansToDegrees(FMath::Atan2(FVector::Dist(CollisionMesh->GetComponentLocation(), m_LocationLastFrame), TurnLimiter));
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(TurnAmount));
+			CollisionMesh->AddLocalRotation(FRotator(0.0f, TurnAmount * AxisValue, 0.0f));
+		}
+	}
+	m_LocationLastFrame = CollisionMesh->GetComponentLocation();
+	m_RotationToBeMaintained = CollisionMesh->GetComponentRotation();
+}
+
+#pragma endregion
+
+#pragma region GasBreak
+
+void ABaseKart::ApplyGasBreak(float AxisValue)
+{
+	ServerRPCSendGasBreak(FMath::Clamp(AxisValue, -1.0f, 1.0f));
+	PerformGasBreak(FMath::Clamp(AxisValue, -1.0f, 1.0f));
+}
 void ABaseKart::ServerRPCSendGasBreak_Implementation(float GasAxis)
 {
 	MulticastRPCGasBreak(GasAxis);
@@ -268,101 +344,30 @@ void ABaseKart::MulticastRPCGasBreak_Implementation(float GasAxis)
 		PerformGasBreak(GasAxis);
 	}
 }
-
-
-void ABaseKart::ApplyGasBreak(float AxisValue)
-{
-	ServerRPCSendGasBreak(FMath::Clamp(AxisValue, -1.0f, 1.0f));
-	PerformGasBreak(FMath::Clamp(AxisValue, -1.0f, 1.0f));
-}
-
-void ABaseKart::Turn(float AxisValue)
-{
-
-
-	ServerRPCSendTurnAxis(FMath::Clamp(AxisValue, -1.0f, 1.0f));
-	PerformTurning(FMath::Clamp(AxisValue, -1.0f, 1.0f));
-}
-
-void ABaseKart::LookBack()
-{
-}
-
-void ABaseKart::DriftHop()
-{
-
-}
-
-void ABaseKart::UseItem()
-{
-}
-
-void ABaseKart::PerformTurning(float AxisValue)
-{
-
-	
-	if (IsGrounded())
-	{
-		if (m_Drifting)
-		{
-			// The turn axis is modified based on whether the kart is turning
-			// with or against a drift
-			float ModifiedDriftAxis = 0;
-
-			if (AxisValue / FMath::Abs(AxisValue) == m_DriftDirection / FMath::Abs(m_DriftDirection))
-			{
-				ModifiedDriftAxis = AxisValue * m_OuterDriftControlModifier;
-			}
-			else {
-				ModifiedDriftAxis = AxisValue * m_InnerDriftControlModifier;
-			}
-
-			CollisionMesh->AddLocalRotation(FRotator(0.0f,0.0f, (m_DriftDirection * -m_AutomaticDriftRotation + ModifiedDriftAxis * m_OverallDriftControllModifier) * GetWorld()->GetDeltaSeconds()));
-		}
-		else { // if not drifting
-			
-
-			float ForwardReverseModifier = 1;
-			if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) < 0)
-			{
-				ForwardReverseModifier = -1;
-			}
-
-			float TurnAmount = 0;
-			float TurnLimiter = FMath::GetMappedRangeValueClamped(FVector2D(m_MaxSpeedForMaxTurnRadius, m_MaxSpeed), FVector2D(m_MinTurnRadius, m_MaxTurnRadius), FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()));
-			TurnAmount =FMath::RadiansToDegrees( FMath::Atan2(FVector::Dist(CollisionMesh->GetComponentLocation(), m_LocationLastFrame), TurnLimiter));
-			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(TurnAmount));
-			CollisionMesh->AddLocalRotation(FRotator(0.0f,TurnAmount * AxisValue,0.0f));
-		}
-	}
-	m_LocationLastFrame = CollisionMesh->GetComponentLocation();
-	m_RotationToBeMaintained = CollisionMesh->GetComponentRotation();
-}
-
 void ABaseKart::PerformGasBreak(float AxisValue)
 {
-	
+
 	if (IsGrounded())
 	{
 		float ForceToApply = 0;
 
-			if (AxisValue > 0)
+		if (AxisValue > 0)
+		{
+			ForceToApply = m_AccelerationForce * AxisValue;
+		}
+		else {
+			if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) > 20)
 			{
-				ForceToApply = m_AccelerationForce * AxisValue;
+				ForceToApply = m_BreakForce * AxisValue;
 			}
 			else {
-				if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) > 20)
-				{
-					ForceToApply = m_BreakForce * AxisValue;
-				}
-				else {
-					ForceToApply = m_ReverseForce * AxisValue;
-				}
+				ForceToApply = m_ReverseForce * AxisValue;
 			}
+		}
 
-		if(m_Drifting)
+		if (m_Drifting)
 		{
-			ApplyForce(FRotator(0,0, m_AutomaticDriftRotation).RotateVector(CollisionMesh->GetForwardVector() * ForceToApply));
+			ApplyForce(FRotator(0, 0, m_AutomaticDriftRotation).RotateVector(CollisionMesh->GetForwardVector() * ForceToApply));
 		}
 		else
 		{
@@ -370,6 +375,38 @@ void ABaseKart::PerformGasBreak(float AxisValue)
 		}
 	}
 }
+
+#pragma endregion
+
+void ABaseKart::LookBackPressed()
+{
+}
+
+void ABaseKart::LookBackReleased()
+{
+}
+
+void ABaseKart::HopPressed()
+{
+	if (m_InTrickVolume)
+	{
+		if (m_CanTrick)
+		{
+			ApplyForwardImpulse(m_TrickForce);
+		}
+	}
+}
+
+void ABaseKart::HopReleased()
+{
+}
+
+void ABaseKart::UseItem()
+{
+}
+
+
+
 
 bool ABaseKart::IsGrounded()
 {
