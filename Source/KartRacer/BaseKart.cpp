@@ -33,6 +33,10 @@ ABaseKart::ABaseKart() :
 #pragma region ComponentInit
 	CollisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CollisionRoot"));
 	RootComponent = CollisionMesh;
+	CollisionMesh->SetSimulatePhysics(true);
+	CollisionMesh->SetEnableGravity(false);
+	CollisionMesh->SetLinearDamping(1.0f);
+	CollisionMesh->SetAngularDamping(2.0f);
 
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
 	BodyMesh->AttachTo(RootComponent);
@@ -103,6 +107,7 @@ void ABaseKart::Tick( float DeltaTime )
 	DealWithGravity();
 	ResetRotation();
 
+
 }
 
 
@@ -112,7 +117,7 @@ void ABaseKart::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 {
 	Super::SetupPlayerInputComponent(InputComponent);
 
-	InputComponent->BindAxis("Accekerate", this, &ABaseKart::ApplyGasBreak);
+	InputComponent->BindAxis("Accelerate", this, &ABaseKart::ApplyGasBreak);
 	InputComponent->BindAxis("Turn", this, &ABaseKart::Turn);
 
 	InputComponent->BindAction("LookBack", IE_Pressed, this, &ABaseKart::LookBack);
@@ -124,7 +129,12 @@ void ABaseKart::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 
 void ABaseKart::ApplyForwardForce(float Force)
 {
-	CollisionMesh->AddForce(CollisionMesh->GetForwardVector() * Force);
+	CollisionMesh->AddForce(CollisionMesh->GetForwardVector() * Force,NAME_None,true);
+}
+
+void ABaseKart::ApplyForce(FVector Force)
+{
+	CollisionMesh->AddForce(Force, NAME_None, true);
 }
 
 void ABaseKart::ResetRotation()
@@ -158,14 +168,14 @@ void ABaseKart::UpdateSuspension()
 		if (hit)
 		{
 			m_GroundedWheels++;
-			//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, "Hit");
+			//
 
 			if (HitData.PhysMaterial->Friction > 1)
 			{
 				m_WheelsOffRoad++;
 			}
 
-			AverageHeight += HitData.Time * (m_SuspensionLength + m_WheelRadius);
+			AverageHeight += (m_SuspensionLength) - ((m_SuspensionLength) * HitData.Time);
 
 			Wheels[WheelIndex]->SetWorldLocation(Arrows[WheelIndex]->GetComponentLocation() + Arrows[WheelIndex]->GetForwardVector() * (m_SuspensionLength + m_WheelRadius) * HitData.Time - (Arrows[WheelIndex]->GetForwardVector() * m_WheelRadius));
 			
@@ -176,17 +186,8 @@ void ABaseKart::UpdateSuspension()
 	
 	}
 	AverageHeight = AverageHeight / 4 - 2;
-	SetBodyHeight(AverageHeight);
+	CollisionMesh->SetWorldLocation(CollisionMesh->GetComponentLocation() + CollisionMesh->GetUpVector() * AverageHeight);
 }
-
-
-
-void ABaseKart::SetBodyHeight(float AverageWheelHeight)
-{
-	CollisionMesh->SetWorldLocation(CollisionMesh->GetComponentLocation() + CollisionMesh->GetUpVector() * AverageWheelHeight);
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "debug msg");
-}
-
 
 
 void ABaseKart::CalculatebodyRotation()
@@ -213,21 +214,20 @@ void ABaseKart::DealWithGravity()
 {
 	if(m_GroundedWheels > 3)
 	{
-		CollisionMesh->AddForce(m_GravityDirection * m_GravityStrength);
+		FVector LinearVelocity = CollisionMesh->GetPhysicsLinearVelocity();
+		// If 3 or more wheels are on the ground then eliminate gravity
+		CollisionMesh->SetPhysicsLinearVelocity(LinearVelocity - FVector::DotProduct(LinearVelocity, -CollisionMesh->GetUpVector()) * -CollisionMesh->GetUpVector());
 	}
 	else
 	{
-		FVector LinearVelocity = CollisionMesh->GetPhysicsLinearVelocity();
-		// If 3 or more wheels are on the ground then eliminate gravity
-		CollisionMesh->SetPhysicsLinearVelocity(LinearVelocity - FVector::DotProduct(LinearVelocity,CollisionMesh->GetUpVector()) * CollisionMesh->GetUpVector() * -1 );
+		CollisionMesh->AddForce(m_GravityDirection * m_GravityStrength, NAME_None, true);
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, "Not Grounded");
 	}
 }
 
-
-#pragma region NetworkingStuff
-
-void ABaseKart::ServerRPCSendTurnAxis(float TurnAxis)
+void ABaseKart::ServerRPCSendTurnAxis_Implementation(float TurnAxis)
 {
+	
 	MulticastRPCTurnAxis(TurnAxis);
 
 }
@@ -239,7 +239,7 @@ bool ABaseKart::ServerRPCSendTurnAxis_Validate(float TurnAxis)
 	}
 	return true;                              // This will allow the RPC to be called
 }
-void ABaseKart::MulticastRPCTurnAxis(float TurnAxis)
+void ABaseKart::MulticastRPCTurnAxis_Implementation(float TurnAxis)
 {
 	if (!IsLocallyControlled())
 	{
@@ -249,7 +249,7 @@ void ABaseKart::MulticastRPCTurnAxis(float TurnAxis)
 
 
 
-void ABaseKart::ServerRPCSendGasBreak(float GasAxis)
+void ABaseKart::ServerRPCSendGasBreak_Implementation(float GasAxis)
 {
 	MulticastRPCGasBreak(GasAxis);
 }
@@ -261,7 +261,7 @@ bool ABaseKart::ServerRPCSendGasBreak_Validate(float GasAxis)
 	}
 	return true;                              // This will allow the RPC to be called
 }
-void ABaseKart::MulticastRPCGasBreak(float GasAxis)
+void ABaseKart::MulticastRPCGasBreak_Implementation(float GasAxis)
 {
 	if (!IsLocallyControlled())
 	{
@@ -269,10 +269,6 @@ void ABaseKart::MulticastRPCGasBreak(float GasAxis)
 	}
 }
 
-#pragma endregion
-
-
-#pragma region InputFunctions
 
 void ABaseKart::ApplyGasBreak(float AxisValue)
 {
@@ -282,6 +278,8 @@ void ABaseKart::ApplyGasBreak(float AxisValue)
 
 void ABaseKart::Turn(float AxisValue)
 {
+
+
 	ServerRPCSendTurnAxis(FMath::Clamp(AxisValue, -1.0f, 1.0f));
 	PerformTurning(FMath::Clamp(AxisValue, -1.0f, 1.0f));
 }
@@ -299,13 +297,12 @@ void ABaseKart::UseItem()
 {
 }
 
-#pragma endregion
-
 void ABaseKart::PerformTurning(float AxisValue)
 {
-	if (IsGrouned())
-	{
 
+	
+	if (IsGrounded())
+	{
 		if (m_Drifting)
 		{
 			// The turn axis is modified based on whether the kart is turning
@@ -323,6 +320,8 @@ void ABaseKart::PerformTurning(float AxisValue)
 			CollisionMesh->AddLocalRotation(FRotator(0.0f,0.0f, (m_DriftDirection * -m_AutomaticDriftRotation + ModifiedDriftAxis * m_OverallDriftControllModifier) * GetWorld()->GetDeltaSeconds()));
 		}
 		else { // if not drifting
+			
+
 			float ForwardReverseModifier = 1;
 			if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) < 0)
 			{
@@ -331,9 +330,9 @@ void ABaseKart::PerformTurning(float AxisValue)
 
 			float TurnAmount = 0;
 			float TurnLimiter = FMath::GetMappedRangeValueClamped(FVector2D(m_MaxSpeedForMaxTurnRadius, m_MaxSpeed), FVector2D(m_MinTurnRadius, m_MaxTurnRadius), FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()));
-			TurnAmount = FMath::Atan2(FVector::Dist(CollisionMesh->GetComponentLocation(), m_LocationLastFrame), TurnLimiter);
-
-			CollisionMesh->AddLocalRotation(FRotator(0.0f,0.0f, TurnAmount));
+			TurnAmount =FMath::RadiansToDegrees( FMath::Atan2(FVector::Dist(CollisionMesh->GetComponentLocation(), m_LocationLastFrame), TurnLimiter));
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(TurnAmount));
+			CollisionMesh->AddLocalRotation(FRotator(0.0f,TurnAmount * AxisValue,0.0f));
 		}
 	}
 	m_LocationLastFrame = CollisionMesh->GetComponentLocation();
@@ -342,31 +341,24 @@ void ABaseKart::PerformTurning(float AxisValue)
 
 void ABaseKart::PerformGasBreak(float AxisValue)
 {
-	if (IsGrouned())
+	
+	if (IsGrounded())
 	{
-
 		float ForceToApply = 0;
 
-		if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) > 0)
-		{
 			if (AxisValue > 0)
 			{
 				ForceToApply = m_AccelerationForce * AxisValue;
 			}
 			else {
-				ForceToApply = -m_BreakForce * AxisValue;
+				if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) > 20)
+				{
+					ForceToApply = m_BreakForce * AxisValue;
+				}
+				else {
+					ForceToApply = m_ReverseForce * AxisValue;
+				}
 			}
-		}
-		else 
-		{
-			if (AxisValue > 0)
-			{
-				ForceToApply = m_AccelerationForce * AxisValue;
-			}
-			else {
-				ForceToApply = -m_ReverseForce * AxisValue;
-			}
-		}
 
 		if(m_Drifting)
 		{
@@ -379,7 +371,7 @@ void ABaseKart::PerformGasBreak(float AxisValue)
 	}
 }
 
-bool ABaseKart::IsGrouned()
+bool ABaseKart::IsGrounded()
 {
 	if (m_GroundedWheels == 0)
 	{

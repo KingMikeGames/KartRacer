@@ -25,48 +25,48 @@ public:
 
 	// components
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		UStaticMeshComponent* CollisionMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		UStaticMeshComponent* BodyMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		TArray<UArrowComponent*> Arrows;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		TArray<UStaticMeshComponent*> Wheels;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		USpringArmComponent* CameraBoom;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		UCameraComponent* Camera;
 
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arrow")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Arrow")
 		UArrowComponent* FrontRightArrow;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arrow")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Arrow")
 		UArrowComponent* FrontLeftArrow;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arrow")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Arrow")
 		UArrowComponent* BackRightArrow;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arrow")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Arrow")
 		UArrowComponent* BackLeftArrow;
 
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel")
 		UStaticMeshComponent* FrontRightWheel;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel")
 		UStaticMeshComponent* FrontLeftWheel;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel")
 		UStaticMeshComponent* BackRightWheel;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel")
 		UStaticMeshComponent* BackLeftWheel;
 
 	// Variables to be changed in editor
@@ -140,7 +140,6 @@ private:
 	void ResetRotation();
 	FVector GetGravityDirection();
 	void UpdateSuspension();
-	void SetBodyHeight(float AverageWheelHeight);
 	void CalculatebodyRotation();
 	void CheckIfLanded();
 	void Landed();
@@ -171,5 +170,5 @@ private:
 	void PerformGasBreak(float AxisValue);
 
 	//checks
-	bool IsGrouned();
+	bool IsGrounded();
 };

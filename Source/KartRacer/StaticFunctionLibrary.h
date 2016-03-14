@@ -35,18 +35,22 @@ public:
 	{
 		return false;
 	}
- 
+	const FName TraceTag("MyTraceTag");
+
+	World->DebugDrawTraceTag = TraceTag;
+
 	FCollisionQueryParams TraceParams(FName(TEXT("VictoreCore Trace")), true, ActorToIgnore);
+	TraceParams.TraceTag = TraceTag;
 	TraceParams.bTraceComplex = true;
 	//TraceParams.bTraceAsyncScene = true;
 	TraceParams.bReturnPhysicalMaterial = ReturnPhysMat;
- 
+
 	//Ignore Actors
 	TraceParams.AddIgnoredActor(ActorToIgnore);
  
 	//Re-initialize hit info
 	HitOut = FHitResult(ForceInit);
- 
+
 	//Trace!
 	World->LineTraceSingleByChannel(
 		HitOut,		//result
