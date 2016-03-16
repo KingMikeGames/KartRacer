@@ -2,8 +2,8 @@
 
 #include "KartRacer.h"
 #include "BaseKart.h"
-
 #include "StaticFunctionLibrary.h"
+#include <Kismet/KismetMathLibrary.h>
 
 // Sets default values
 ABaseKart::ABaseKart() :
@@ -19,7 +19,7 @@ ABaseKart::ABaseKart() :
 	m_InnerDriftControlModifier(1.0f),
 	m_AutomaticDriftRotation(30.0f),
 	m_OverallDriftControllModifier(40.0f),
-	m_MaxSpeedForMaxTurnRadius(1000.0f),
+	m_MaxSpeedForMaxTurnRadius(750.0f),
 	m_MaxSpeed(4000),
 	m_MinTurnRadius(1000),
 	m_MaxTurnRadius(4000),
@@ -30,7 +30,7 @@ ABaseKart::ABaseKart() :
 	m_CanTrick(true),
 	m_TrickForceAir(500.0f),
 	m_DriftButtonHeld(false),
-	m_HopPower(500.0f),
+	m_HopPower(1000.0f),
 	m_DeadZone(0.1f),
 	m_DriftTimer(0.0f),
 	m_DriftReady(true),
@@ -41,7 +41,14 @@ ABaseKart::ABaseKart() :
 	m_MinDriftSpeed(600.0f),
 	m_OnDriftVelocityRotationInDegrees(10.0f),
 	m_HasTrickBoost(false),
-	m_TrickForceLanded(500)
+	m_TrickForceLanded(500),
+	m_ForwardVectorFromWheels(0.0f, 0.0f, 0.0f),
+	m_RightVectorFromWheels(0.0f, 0.0f, 0.0f),
+	m_GroundRInterpSpeed(0.0f),
+	m_AirRInterpSpeed(75.0f),
+	m_SlideResistance(1.5),
+	m_OffRoadSlowDownPerWheel(0.25f),
+	m_ControlsEnabled(true)
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -95,6 +102,10 @@ ABaseKart::ABaseKart() :
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->AttachTo(BodyMesh);
+	CameraBoom->bEnableCameraLag = true;
+	CameraBoom->bEnableCameraRotationLag = true;
+	CameraBoom->CameraLagSpeed = 15.0f;
+	CameraBoom->CameraRotationLagSpeed = 10.0f;
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->AttachTo(CameraBoom);
@@ -115,15 +126,23 @@ void ABaseKart::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 
+	if (CollisionMesh->GetPhysicsLinearVelocity().Size() < m_MinDriftSpeed)
+	{
+		EndDrift();
+	}
+
 	m_GravityDirection = GetGravityDirection();
 	UpdateSuspension();
 	ResetRotation();
 	CheckIfLanded();
-	CalculatebodyRotation();
+	//CalculatebodyRotation();
 	DealWithGravity();
 	ResetRotation();
-
-
+	SetForwardVectorFromWheels();
+	SetRightVectorFromWheels();
+	RotationInterpolation(DeltaTime);
+	DriftPhysics(DeltaTime);
+	SetLinearDamping();
 }
 
 
@@ -148,16 +167,19 @@ void ABaseKart::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 void ABaseKart::ApplyForwardForce(float Force)
 {
 	CollisionMesh->AddForce(CollisionMesh->GetForwardVector() * Force,NAME_None,true);
+	//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(Force));
 }
 
 void ABaseKart::ApplyForce(FVector Force)
 {
 	CollisionMesh->AddForce(Force, NAME_None, true);
+	//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(Force.Size()));
 }
 
 void ABaseKart::ApplyForwardImpulse(float Force)
 {
 	CollisionMesh->AddImpulse(CollisionMesh->GetForwardVector() * Force, NAME_None, true);
+	
 }
 
 void ABaseKart::ApplyImpulse(FVector Force)
@@ -167,7 +189,7 @@ void ABaseKart::ApplyImpulse(FVector Force)
 
 void ABaseKart::SpawnTrickEmitter_Implementation()
 {
-
+	//TODO: Figure out how BPNativeEvents work
 }
 
 void ABaseKart::SpawnPoofEmitter_Implementation()
@@ -276,10 +298,11 @@ void ABaseKart::DealWithGravity()
 
 void ABaseKart::Turn(float AxisValue)
 {
-
-
-	ServerRPCSendTurnAxis(FMath::Clamp(AxisValue, -1.0f, 1.0f));
-	PerformTurning(FMath::Clamp(AxisValue, -1.0f, 1.0f));
+	if (m_ControlsEnabled)
+	{
+		ServerRPCSendTurnAxis(FMath::Clamp(AxisValue, -1.0f, 1.0f));
+		PerformTurning(FMath::Clamp(AxisValue, -1.0f, 1.0f));
+	}
 }
 void ABaseKart::ServerRPCSendTurnAxis_Implementation(float TurnAxis)
 {
@@ -336,7 +359,7 @@ void ABaseKart::PerformTurning(float AxisValue)
 			float TurnAmount = 0;
 			float TurnLimiter = FMath::GetMappedRangeValueClamped(FVector2D(m_MaxSpeedForMaxTurnRadius, m_MaxSpeed), FVector2D(m_MinTurnRadius, m_MaxTurnRadius), FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()));
 			TurnAmount = FMath::RadiansToDegrees(FMath::Atan2(FVector::Dist(CollisionMesh->GetComponentLocation(), m_LocationLastFrame), TurnLimiter));
-			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(TurnAmount));
+			
 			CollisionMesh->AddLocalRotation(FRotator(0.0f, TurnAmount * AxisValue, 0.0f));
 		}
 	}
@@ -350,8 +373,11 @@ void ABaseKart::PerformTurning(float AxisValue)
 
 void ABaseKart::ApplyGasBreak(float AxisValue)
 {
-	ServerRPCSendGasBreak(FMath::Clamp(AxisValue, -1.0f, 1.0f));
-	PerformGasBreak(FMath::Clamp(AxisValue, -1.0f, 1.0f));
+	if (m_ControlsEnabled)
+	{
+		ServerRPCSendGasBreak(FMath::Clamp(AxisValue, -1.0f, 1.0f));
+		PerformGasBreak(FMath::Clamp(AxisValue, -1.0f, 1.0f));
+	}
 }
 void ABaseKart::ServerRPCSendGasBreak_Implementation(float GasAxis)
 {
@@ -406,71 +432,136 @@ void ABaseKart::PerformGasBreak(float AxisValue)
 
 #pragma endregion
 
-void ABaseKart::LookBackPressed()
-{
-	CameraBoom->bEnableCameraLag = false;
-	CameraBoom->SetRelativeRotation(FRotator(-15.0f, 180.0f, 0.0f));
-	GetWorldTimerManager().SetTimer(m_CameraLagTimerHandle, this, &ABaseKart::EnableCameraLag, 0.1f);
-}
+
 
 void ABaseKart::EnableCameraLag()
 {
 	CameraBoom->bEnableCameraLag = true;
 }
 
+void ABaseKart::SetForwardVectorFromWheels()
+{
+	m_ForwardVectorFromWheels = ((Wheels[0]->GetComponentLocation() - Wheels[2]->GetComponentLocation()).GetSafeNormal() + (Wheels[1]->GetComponentLocation() - Wheels[3]->GetComponentLocation()).GetSafeNormal()).GetSafeNormal();
+}
+
+void ABaseKart::SetRightVectorFromWheels()
+{
+	m_RightVectorFromWheels = ((Wheels[0]->GetComponentLocation() - Wheels[1]->GetComponentLocation()).GetSafeNormal() + (Wheels[2]->GetComponentLocation() - Wheels[3]->GetComponentLocation()).GetSafeNormal()).GetSafeNormal();
+}
+
+void ABaseKart::RotationInterpolation(float DeltaTime)
+{
+	ResetRotation();
+	FVector OldForwardVector = CollisionMesh->GetForwardVector();
+	FVector UpVector = IsGrounded() ? FVector::CrossProduct(m_ForwardVectorFromWheels, m_RightVectorFromWheels) : -m_GravityDirection;
+	FRotator TargetRotation = FRotator::MakeFromEuler(FVector(UKismetMathLibrary::MakeRotFromZX(UpVector, m_ForwardVectorFromWheels).Roll,UKismetMathLibrary::MakeRotFromYZ(m_RightVectorFromWheels,UpVector).Pitch,UKismetMathLibrary::MakeRotFromXY(m_ForwardVectorFromWheels,m_RightVectorFromWheels).Yaw));
+	FRotator NewRotation(FMath::RInterpConstantTo(m_RotationToBeMaintained,TargetRotation,DeltaTime,IsGrounded() ? m_GroundRInterpSpeed : m_AirRInterpSpeed));
+	CollisionMesh->SetWorldRotation(FRotator::MakeFromEuler(FVector(NewRotation.Roll, NewRotation.Pitch, TargetRotation.Yaw)));
+	FVector NewForwardVector = CollisionMesh->GetForwardVector();
+	if (m_GroundedWheels == 4)
+	{
+		float SpeedToGetRotated = FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), OldForwardVector);
+		CollisionMesh->SetPhysicsLinearVelocity( (CollisionMesh->GetPhysicsLinearVelocity() - OldForwardVector * SpeedToGetRotated) + (NewForwardVector * SpeedToGetRotated) );
+	}
+	m_RotationToBeMaintained = CollisionMesh->GetComponentRotation();
+}
+
+void ABaseKart::DriftPhysics(float DeltaTime)
+{
+	if (IsGrounded())
+	{
+		if (m_Drifting)
+		{
+			m_DriftTimer += DeltaTime;
+		}
+		ApplyForce(-FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(),CollisionMesh->GetRightVector()) * CollisionMesh->GetRightVector() * m_SlideResistance);
+	}
+}
+
+void ABaseKart::SetLinearDamping()
+{
+	if (IsGrounded())
+	{
+		CollisionMesh->SetLinearDamping(1 + m_OffRoadSlowDownPerWheel * m_WheelsOffRoad);
+	}
+	else
+	{
+		CollisionMesh->SetLinearDamping(0.1f);
+	}
+}
+
+void ABaseKart::LookBackPressed()
+{
+	if (m_ControlsEnabled)
+	{
+		CameraBoom->bEnableCameraLag = false;
+		CameraBoom->SetRelativeRotation(FRotator(-15.0f, 180.0f, 0.0f));
+		GetWorldTimerManager().SetTimer(m_CameraLagTimerHandle, this, &ABaseKart::EnableCameraLag, 0.1f);
+	}
+}
+
 void ABaseKart::LookBackReleased()
 {
-	CameraBoom->bEnableCameraLag = false;
-	CameraBoom->SetRelativeRotation(FRotator(-15.0f, 0.0f, 0.0f));
-	GetWorldTimerManager().SetTimer(m_CameraLagTimerHandle, this, &ABaseKart::EnableCameraLag, 0.1f);
+	if (m_ControlsEnabled)
+	{
+		CameraBoom->bEnableCameraLag = false;
+		CameraBoom->SetRelativeRotation(FRotator(-15.0f, 0.0f, 0.0f));
+		GetWorldTimerManager().SetTimer(m_CameraLagTimerHandle, this, &ABaseKart::EnableCameraLag, 0.1f);
+	}
 }
 
 void ABaseKart::HopPressed()
 {
-	if (m_InTrickVolume)
+	if (m_ControlsEnabled)
 	{
-		if (m_CanTrick)
+		if (m_InTrickVolume)
 		{
-			ApplyForwardImpulse(m_TrickForceAir);
-			SpawnTrickEmitter_Implementation();
-			m_HasTrickBoost = true;
+			if (m_CanTrick)
+			{
+				ApplyForwardImpulse(m_TrickForceAir);
+				SpawnTrickEmitter_Implementation();
+				m_HasTrickBoost = true;
+			}
 		}
-	}
-	m_DriftButtonHeld = true;
-	if (IsGrounded())
-	{
-		ApplyImpulse(CollisionMesh->GetUpVector() * m_HopPower);
-		float TurnValue = GetInputAxisValue("Turn");
-		if (TurnValue < -m_DeadZone)
+		m_DriftButtonHeld = true;
+		if (IsGrounded())
 		{
-			m_DriftDirection = -1;
-		}
-		else if(TurnValue > m_DeadZone) {
-			m_DriftDirection = 1;
-		}
-		else
-		{
-			m_DriftDirection = 0;
-		}
+			ApplyImpulse(CollisionMesh->GetUpVector() * m_HopPower);
+			float TurnValue = GetInputAxisValue("Turn");
+			if (TurnValue < -m_DeadZone)
+			{
+				m_DriftDirection = -1;
+			}
+			else if (TurnValue > m_DeadZone) {
+				m_DriftDirection = 1;
+			}
+			else
+			{
+				m_DriftDirection = 0;
+			}
 
-		//TODO: Figure out if we're using animations for drift hops
+			//TODO: Figure out if we're using animations for drift hops
+		}
 	}
 }
 
 void ABaseKart::HopReleased()
 {
-	if (m_Drifting)
+	if (m_ControlsEnabled)
 	{
-		if (m_DriftTimer > 3.0f)
+		if (m_Drifting)
 		{
-			ApplyForwardImpulse(m_MegaDriftBoostForce);
+			if (m_DriftTimer > 3.0f)
+			{
+				ApplyForwardImpulse(m_MegaDriftBoostForce);
+			}
+			else if (m_DriftTimer > 1.0f)
+			{
+				ApplyForwardImpulse(m_MiniDriftBoostForce);
+			}
 		}
-		else if (m_DriftTimer > 1.0f)
-		{
-			ApplyForwardImpulse(m_MiniDriftBoostForce);
-		}
+		EndDrift();
 	}
-	EndDrift();
 }
 
 void ABaseKart::EndDrift()
@@ -484,7 +575,7 @@ void ABaseKart::EndDrift()
 void ABaseKart::LandedInDrift()
 {
 	m_Drifting = true;
-	CollisionMesh->SetPhysicsLinearVelocity(FRotator(0.0f, m_OnDriftVelocityRotationInDegrees, 0.0f).RotateVector(CollisionMesh->GetPhysicsLinearVelocity()));
+	CollisionMesh->SetPhysicsLinearVelocity(FRotator(0.0f, -m_OnDriftVelocityRotationInDegrees * m_DriftDirection, 0.0f).RotateVector(CollisionMesh->GetPhysicsLinearVelocity()));
 	m_DriftReady = true;
 }
 
@@ -492,6 +583,10 @@ void ABaseKart::LandedInDrift()
 
 void ABaseKart::UseItem()
 {
+	if (m_ControlsEnabled)
+	{
+
+	}
 }
 
 
