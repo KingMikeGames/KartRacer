@@ -194,16 +194,16 @@ private:
 	class UCameraComponent* Camera;
 
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Kart", meta = (AllowPrivateAccess = "true"))
 	class UArrowComponent* FrontRightArrow;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Kart", meta = (AllowPrivateAccess = "true"))
 	class UArrowComponent* FrontLeftArrow;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Kart", meta = (AllowPrivateAccess = "true"))
 	class UArrowComponent* BackRightArrow;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Kart", meta = (AllowPrivateAccess = "true"))
 	class UArrowComponent* BackLeftArrow;
 
 

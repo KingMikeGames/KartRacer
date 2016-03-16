@@ -60,48 +60,48 @@ ABaseKart::ABaseKart() :
 	CollisionMesh->SetEnableGravity(false);
 	CollisionMesh->SetLinearDamping(1.0f);
 	CollisionMesh->SetAngularDamping(2.0f);
-
+	CollisionMesh->bHiddenInGame = true;
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
 	BodyMesh->AttachTo(RootComponent);
 
 #pragma region Arrow Initialization
 	FrontRightArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("FrontRightArrow"));
-	FrontRightArrow->AttachTo(BodyMesh);
+	FrontRightArrow->AttachTo(RootComponent);
 	Arrows.Add(FrontRightArrow);
 
 	FrontLeftArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("FrontLeftArrow"));
-	FrontLeftArrow->AttachTo(BodyMesh);
+	FrontLeftArrow->AttachTo(RootComponent);
 	Arrows.Add(FrontLeftArrow);
 
 	BackRightArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("BackRightArrow"));
-	BackRightArrow->AttachTo(BodyMesh);
+	BackRightArrow->AttachTo(RootComponent);
 	Arrows.Add(BackRightArrow);
 
 	BackLeftArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("BackLeftArrow"));
-	BackLeftArrow->AttachTo(BodyMesh);
+	BackLeftArrow->AttachTo(RootComponent);
 	Arrows.Add(BackLeftArrow);
 #pragma endregion
 
 #pragma region Wheel Initialization
 	FrontRightWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FrontRightWheel"));
-	FrontRightWheel->AttachTo(BodyMesh);
+	FrontRightWheel->AttachTo(RootComponent);
 	Wheels.Add(FrontRightWheel);
 
 	FrontLeftWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FrontLeftWheel"));
-	FrontLeftWheel->AttachTo(BodyMesh);
+	FrontLeftWheel->AttachTo(RootComponent);
 	Wheels.Add(FrontLeftWheel);
 
 	BackRightWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BackRightWheel"));
-	BackRightWheel->AttachTo(BodyMesh);
+	BackRightWheel->AttachTo(RootComponent);
 	Wheels.Add(BackRightWheel);
 
 	BackLeftWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BackLeftWheel"));
-	BackLeftWheel->AttachTo(BodyMesh);
+	BackLeftWheel->AttachTo(RootComponent);
 	Wheels.Add(BackLeftWheel);
 #pragma endregion
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->AttachTo(BodyMesh);
+	CameraBoom->AttachTo(RootComponent);
 	CameraBoom->bEnableCameraLag = true;
 	CameraBoom->bEnableCameraRotationLag = true;
 	CameraBoom->CameraLagSpeed = 15.0f;
@@ -336,13 +336,12 @@ void ABaseKart::PerformTurning(float AxisValue)
 			// The turn axis is modified based on whether the kart is turning
 			// with or against a drift
 			float ModifiedDriftAxis = 0;
-
 			if (AxisValue / FMath::Abs(AxisValue) == m_DriftDirection / FMath::Abs(m_DriftDirection))
 			{
-				ModifiedDriftAxis = AxisValue * m_OuterDriftControlModifier;
+				ModifiedDriftAxis = AxisValue * m_InnerDriftControlModifier;
 			}
 			else {
-				ModifiedDriftAxis = AxisValue * m_InnerDriftControlModifier;
+				ModifiedDriftAxis = AxisValue * m_OuterDriftControlModifier;
 			}
 
 			CollisionMesh->AddLocalRotation(FRotator(0.0f, (m_DriftDirection * m_AutomaticDriftRotation + ModifiedDriftAxis * m_OverallDriftControllModifier) * GetWorld()->GetDeltaSeconds(), 0.0f));
@@ -360,7 +359,7 @@ void ABaseKart::PerformTurning(float AxisValue)
 			float TurnLimiter = FMath::GetMappedRangeValueClamped(FVector2D(m_MaxSpeedForMaxTurnRadius, m_MaxSpeed), FVector2D(m_MinTurnRadius, m_MaxTurnRadius), FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()));
 			TurnAmount = FMath::RadiansToDegrees(FMath::Atan2(FVector::Dist(CollisionMesh->GetComponentLocation(), m_LocationLastFrame), TurnLimiter));
 			
-			CollisionMesh->AddLocalRotation(FRotator(0.0f, TurnAmount * AxisValue, 0.0f));
+			CollisionMesh->AddLocalRotation(FRotator(0.0f, TurnAmount * ForwardReverseModifier * AxisValue, 0.0f));
 		}
 	}
 	m_LocationLastFrame = CollisionMesh->GetComponentLocation();
