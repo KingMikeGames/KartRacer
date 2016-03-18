@@ -4,6 +4,7 @@
 #include "BaseKart.h"
 #include "StaticFunctionLibrary.h"
 #include <Kismet/KismetMathLibrary.h>
+#include "KartGameInstance.h"
 
 // Sets default values
 ABaseKart::ABaseKart() :
@@ -117,8 +118,9 @@ ABaseKart::ABaseKart() :
 void ABaseKart::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	m_LocationLastFrame = CollisionMesh->GetComponentLocation();
+	
 }
 
 // Called every frame
@@ -185,6 +187,19 @@ void ABaseKart::ApplyForwardImpulse(float Force)
 void ABaseKart::ApplyImpulse(FVector Force)
 {
 	CollisionMesh->AddImpulse(Force, NAME_None, true);
+}
+
+void ABaseKart::UpdateKartComponents()
+{
+	UKartGameInstance* KartGameInstance = Cast<UKartGameInstance>(GetGameInstance());
+	if (KartGameInstance)
+	{
+		
+	}
+	else
+	{
+
+	}
 }
 
 void ABaseKart::SpawnTrickEmitter_Implementation()
