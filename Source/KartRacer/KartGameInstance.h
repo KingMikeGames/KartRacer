@@ -138,7 +138,34 @@ struct FInventoryStruct
 		TArray<int32> SparkInventory;
 };
 
+USTRUCT(BlueprintType)
+struct FEquipment
+{
 
+	GENERATED_USTRUCT_BODY()
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		int32 Body;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		int32 Wheel;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		int32 Spark;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		int32 Trail;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		int32 Poof;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		int32 Trick;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		int32 Paint;
+
+};
 
 USTRUCT(BlueprintType)
 struct FPlayerInfo
@@ -146,7 +173,7 @@ struct FPlayerInfo
 
 	GENERATED_USTRUCT_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
 		FName PlayerName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
@@ -169,7 +196,12 @@ struct FPlayerInfo
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
 		FInventoryStruct Inventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		FEquipment CurrentlyEquipped;
 };
+
+
 
 UENUM(BlueprintType)		//"BlueprintType" is essential to include
 enum class ETabEnum : uint8
