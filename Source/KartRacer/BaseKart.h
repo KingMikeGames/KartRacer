@@ -128,6 +128,35 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Control")
 		float m_OffRoadSlowDownPerWheel;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool m_Drifting;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool UpdateSparks;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool UpdateTrails;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool UpdatePoof;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool UpdateBody;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool UpdateWheels;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool UpdateTrick;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		float TurnValue;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		float FrontWheelStart;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		float m_DriftTimer;
 	// Can you drive?
 	// true = yes
 	// false = no
@@ -165,13 +194,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Visuals")
 		void UpdateKartComponents();
 
-	UFUNCTION(BluePrintNativeEvent)
-		void SpawnTrickEmitter();
-		virtual void SpawnTrickEmitter_Implementation();
+	UFUNCTION(BlueprintCallable, Category = "Visuals")
+		void SparkLogic();
 
 	UFUNCTION(BluePrintNativeEvent)
-		void SpawnPoofEmitter();
-		virtual void SpawnPoofEmitter_Implementation();
+		void SpawnEmitter(UParticleSystemComponent* emitter);
+		virtual void SpawnEmitter_Implementation(UParticleSystemComponent* emitter);
 
 	
 private:
@@ -222,12 +250,32 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
 	class UStaticMeshComponent* BackLeftWheel;
 
-	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	class UParticleSystemComponent* BSparkLeft;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	class UParticleSystemComponent* BSparkRight;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	class UParticleSystemComponent* RSparkLeft;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	class UParticleSystemComponent* RSparkRight;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	class UParticleSystemComponent* TrailEmitterRight;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	class UParticleSystemComponent* TrailEmitterLeft;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	class UParticleSystemComponent* TrickEmitter;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
+	class UParticleSystemComponent* PoofEmitter;
+
 
 	FRotator		m_RotationToBeMaintained;
 
 	float			m_WheelRadius;
-	float			m_DriftTimer;
+	
 
 	int32			m_GroundedWheelsLastFrame;
 	int32			m_GroundedWheels;
@@ -239,7 +287,6 @@ private:
 	FVector			m_ForwardVectorFromWheels;
 	FVector			m_RightVectorFromWheels;
 
-	bool			m_Drifting;
 	bool			m_CanTrick;
 	bool			m_DriftButtonHeld;
 	bool			m_DriftReady;
@@ -265,18 +312,6 @@ private:
 	void RotationInterpolation(float DeltaTime);
 	void DriftPhysics(float DeltaTime);
 	void SetLinearDamping();
-	// Network Functions
-	UFUNCTION(Server, WithValidation, Reliable)
-		void ServerRPCSendTurnAxis(float TurnAxis);
-
-	UFUNCTION(NetMulticast, Reliable)
-		void MulticastRPCTurnAxis(float TurnAxis);
-
-	UFUNCTION(Server, WithValidation, Reliable)
-		void ServerRPCSendGasBreak(float GasAxis);
-
-	UFUNCTION(NetMulticast, Reliable)
-		void MulticastRPCGasBreak(float GasAxis);
 
 	// Input functions
 	void ApplyGasBreak(float AxisValue);
@@ -287,7 +322,6 @@ private:
 	void HopReleased();
 	void UseItem();
 	
-	void PerformTurning(float AxisValue);
 	void PerformGasBreak(float AxisValue);
 
 	//checks

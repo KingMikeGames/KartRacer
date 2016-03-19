@@ -49,7 +49,14 @@ ABaseKart::ABaseKart() :
 	m_AirRInterpSpeed(75.0f),
 	m_SlideResistance(1.5),
 	m_OffRoadSlowDownPerWheel(0.25f),
-	m_ControlsEnabled(true)
+	m_ControlsEnabled(true),
+	UpdateSparks(true),
+	UpdateTrails(true),
+	UpdatePoof(true),
+	UpdateBody(true),
+	UpdateWheels(true),
+	UpdateTrick(true),
+	TurnValue(0.0f)
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -101,6 +108,39 @@ ABaseKart::ABaseKart() :
 	Wheels.Add(BackLeftWheel);
 #pragma endregion
 
+	BSparkRight = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("BSparkRight"));
+	BSparkRight->AttachTo(RootComponent);
+	BSparkRight->bAutoActivate = false;
+
+	BSparkLeft = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("BSparkLeft"));
+	BSparkLeft->AttachTo(RootComponent);
+	BSparkLeft->bAutoActivate = false;
+
+	RSparkRight = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("RSparkRight"));
+	RSparkRight->AttachTo(RootComponent);
+	RSparkRight->bAutoActivate = false;
+
+	RSparkLeft = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("RSparkLeft"));
+	RSparkLeft->AttachTo(RootComponent);
+	RSparkLeft->bAutoActivate = false;
+
+	TrailEmitterRight = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TrailEmitterRight"));
+	TrailEmitterRight->AttachTo(RootComponent);
+	TrailEmitterRight->bAutoActivate = false;
+
+	TrailEmitterLeft = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TrailEmitterLeft"));
+	TrailEmitterLeft->AttachTo(RootComponent);
+	TrailEmitterLeft->bAutoActivate = false;
+
+	TrickEmitter = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TrickEmitter"));
+	TrickEmitter->AttachTo(RootComponent);
+	TrickEmitter->bAutoActivate = false;
+
+	PoofEmitter = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("PoofEmitter"));
+	PoofEmitter->AttachTo(RootComponent);
+	PoofEmitter->bAutoActivate = false;
+	
+
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->AttachTo(RootComponent);
 	CameraBoom->bEnableCameraLag = true;
@@ -120,7 +160,20 @@ void ABaseKart::BeginPlay()
 	Super::BeginPlay();
 
 	m_LocationLastFrame = CollisionMesh->GetComponentLocation();
-	
+	UpdateKartComponents();
+
+	FrontRightArrow->SetWorldLocation(BodyMesh->GetSocketLocation("FrontRight") + BodyMesh->GetUpVector() * FVector(1,1,m_SuspensionLength));
+	FrontLeftArrow->SetWorldLocation(BodyMesh->GetSocketLocation("FrontLeft") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
+	BackRightArrow->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
+	BackLeftArrow->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
+
+	BSparkRight->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight"));
+	BSparkLeft->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft"));
+	RSparkRight->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight"));
+	RSparkLeft->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft"));
+	TrailEmitterRight->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight"));
+	TrailEmitterLeft->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft"));
+	FrontWheelStart = FrontLeftWheel->GetComponentRotation().Yaw;
 }
 
 // Called every frame
@@ -194,23 +247,95 @@ void ABaseKart::UpdateKartComponents()
 	UKartGameInstance* KartGameInstance = Cast<UKartGameInstance>(GetGameInstance());
 	if (KartGameInstance)
 	{
-		
+		FEquipment Equips = KartGameInstance->PlayerInfo.CurrentlyEquipped;
+
+		if (UpdateBody)
+		{
+			BodyMesh->SetStaticMesh(KartGameInstance->GetBodyByID(Equips.Body).BodyMesh);
+		}
+		if (UpdateWheels)
+		{
+			for (auto e : Wheels)
+			{
+				e->SetStaticMesh(KartGameInstance->GetWheelByID(Equips.Wheel).WheelMesh);
+			}
+		}
+		if (UpdateTrails)
+		{
+			TrailEmitterLeft->SetTemplate(KartGameInstance->GetTrailByID(Equips.Trail).TrailParticle);
+			TrailEmitterRight->SetTemplate(KartGameInstance->GetTrailByID(Equips.Trail).TrailParticle);
+		}
+		if (UpdateSparks)
+		{
+			BSparkLeft->SetTemplate(KartGameInstance->GetSparkByID(Equips.Spark).BSparkParticle);
+			BSparkRight->SetTemplate(KartGameInstance->GetSparkByID(Equips.Spark).BSparkParticle);
+			RSparkLeft->SetTemplate(KartGameInstance->GetSparkByID(Equips.Spark).RSparkParticle);
+			RSparkRight->SetTemplate(KartGameInstance->GetSparkByID(Equips.Spark).RSparkParticle);
+		}
+		if (UpdateTrick)
+		{
+			TrickEmitter->SetTemplate(KartGameInstance->GetTrickByID(Equips.Trick).TrickParticle);
+		}
+		if (UpdatePoof)
+		{
+			PoofEmitter->SetTemplate(KartGameInstance->GetPoofByID(Equips.Poof).PoofParticle);
+		}
 	}
 	else
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 6.0f, FColor::Red, "Failed to cast game instance to kart game instance");
+	}
+}
+
+void ABaseKart::SparkLogic()
+{
+	if (m_Drifting)
+	{
+		if (m_DriftTimer < m_MiniDriftBoostChargeTime)
+		{
+			BSparkLeft->SetActive(false);
+			BSparkRight->SetActive(false);
+			RSparkLeft->SetActive(false);
+			RSparkRight->SetActive(false);
+			TrailEmitterLeft->SetActive(true);
+			TrailEmitterRight->SetActive(true);
+		}
+		else if (m_DriftTimer >= m_MiniDriftBoostChargeTime && m_DriftTimer < m_MegaDriftBoostChargeTime)
+		{
+			BSparkLeft->SetActive(true);
+			BSparkRight->SetActive(true);
+			RSparkLeft->SetActive(false);
+			RSparkRight->SetActive(false);
+			TrailEmitterLeft->SetActive(true);
+			TrailEmitterRight->SetActive(true);
+		}
+		else if (m_DriftTimer >= m_MegaDriftBoostChargeTime)
+		{
+			BSparkLeft->SetActive(false);
+			BSparkRight->SetActive(false);
+			RSparkLeft->SetActive(true);
+			RSparkRight->SetActive(true);
+			TrailEmitterLeft->SetActive(true);
+			TrailEmitterRight->SetActive(true);
+		}
+	}
+	else
+	{
+		BSparkLeft->SetActive(false);
+		BSparkRight->SetActive(false);
+		RSparkLeft->SetActive(false);
+		RSparkRight->SetActive(false);
+		TrailEmitterLeft->SetActive(false);
+		TrailEmitterRight->SetActive(false);
 
 	}
 }
 
-void ABaseKart::SpawnTrickEmitter_Implementation()
+void ABaseKart::SpawnEmitter_Implementation(UParticleSystemComponent* emitter)
 {
-	//TODO: Figure out how BPNativeEvents work
+	//Implemented in BP
 }
 
-void ABaseKart::SpawnPoofEmitter_Implementation()
-{
-	//TODO: Figure out how BPNativeEvents work
-}
 
 void ABaseKart::ResetRotation()
 {
@@ -282,7 +407,7 @@ void ABaseKart::CheckIfLanded()
 
 void ABaseKart::Landed()
 {
-	if (!m_Drifting && m_DriftButtonHeld && m_DriftReady && m_DriftDirection != 0 && CollisionMesh->GetPhysicsLinearVelocity().Size() > m_MinDriftSpeed)
+	if (!m_Drifting && m_DriftButtonHeld && m_DriftReady && m_DriftDirection != 0 && FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) > m_MinDriftSpeed)
 	{
 		LandedInDrift();
 	}
@@ -291,7 +416,8 @@ void ABaseKart::Landed()
 		m_HasTrickBoost = false;
 		ApplyForwardImpulse(m_TrickForceLanded);
 	}
-	SpawnPoofEmitter_Implementation();
+	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, "Poof");
+	SpawnEmitter(PoofEmitter);
 }
 
 void ABaseKart::DealWithGravity()
@@ -309,143 +435,84 @@ void ABaseKart::DealWithGravity()
 	}
 }
 
-#pragma region Turning
-
 void ABaseKart::Turn(float AxisValue)
 {
+
+	TurnValue = AxisValue;
+
 	if (m_ControlsEnabled)
 	{
-		ServerRPCSendTurnAxis(FMath::Clamp(AxisValue, -1.0f, 1.0f));
-		PerformTurning(FMath::Clamp(AxisValue, -1.0f, 1.0f));
-	}
-}
-void ABaseKart::ServerRPCSendTurnAxis_Implementation(float TurnAxis)
-{
-
-	MulticastRPCTurnAxis(TurnAxis);
-
-}
-bool ABaseKart::ServerRPCSendTurnAxis_Validate(float TurnAxis)
-{
-	if (FMath::Abs(TurnAxis) > 1.01f)
-	{
-		return false;                       // This will disconnect the caller
-	}
-	return true;                              // This will allow the RPC to be called
-}
-void ABaseKart::MulticastRPCTurnAxis_Implementation(float TurnAxis)
-{
-	if (!IsLocallyControlled())
-	{
-		PerformTurning(TurnAxis);
-	}
-}
-void ABaseKart::PerformTurning(float AxisValue)
-{
-
-
-	if (IsGrounded())
-	{
-		if (m_Drifting)
+		if (IsGrounded())
 		{
-			// The turn axis is modified based on whether the kart is turning
-			// with or against a drift
-			float ModifiedDriftAxis = 0;
-			if (AxisValue / FMath::Abs(AxisValue) == m_DriftDirection / FMath::Abs(m_DriftDirection))
+			if (m_Drifting)
 			{
-				ModifiedDriftAxis = AxisValue * m_InnerDriftControlModifier;
-			}
-			else {
-				ModifiedDriftAxis = AxisValue * m_OuterDriftControlModifier;
-			}
+				// The turn axis is modified based on whether the kart is turning
+				// with or against a drift
+				float ModifiedDriftAxis = 0;
+				if (AxisValue / FMath::Abs(AxisValue) == m_DriftDirection / FMath::Abs(m_DriftDirection))
+				{
+					ModifiedDriftAxis = AxisValue * m_InnerDriftControlModifier;
+				}
+				else {
+					ModifiedDriftAxis = AxisValue * m_OuterDriftControlModifier;
+				}
 
-			CollisionMesh->AddLocalRotation(FRotator(0.0f, (m_DriftDirection * m_AutomaticDriftRotation + ModifiedDriftAxis * m_OverallDriftControllModifier) * GetWorld()->GetDeltaSeconds(), 0.0f));
+				CollisionMesh->AddLocalRotation(FRotator(0.0f, (m_DriftDirection * m_AutomaticDriftRotation + ModifiedDriftAxis * m_OverallDriftControllModifier) * GetWorld()->GetDeltaSeconds(), 0.0f));
+			}
+			else { // if not drifting
+
+
+				float ForwardReverseModifier = 1;
+				if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) < 0)
+				{
+					ForwardReverseModifier = -1;
+				}
+
+				float TurnAmount = 0;
+				float TurnLimiter = FMath::GetMappedRangeValueClamped(FVector2D(m_MaxSpeedForMaxTurnRadius, m_MaxSpeed), FVector2D(m_MinTurnRadius, m_MaxTurnRadius), FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()));
+				TurnAmount = FMath::RadiansToDegrees(FMath::Atan2(FVector::Dist(CollisionMesh->GetComponentLocation(), m_LocationLastFrame), TurnLimiter));
+
+				CollisionMesh->AddLocalRotation(FRotator(0.0f, TurnAmount * ForwardReverseModifier * AxisValue, 0.0f));
+			}
 		}
-		else { // if not drifting
-
-
-			float ForwardReverseModifier = 1;
-			if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) < 0)
-			{
-				ForwardReverseModifier = -1;
-			}
-
-			float TurnAmount = 0;
-			float TurnLimiter = FMath::GetMappedRangeValueClamped(FVector2D(m_MaxSpeedForMaxTurnRadius, m_MaxSpeed), FVector2D(m_MinTurnRadius, m_MaxTurnRadius), FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()));
-			TurnAmount = FMath::RadiansToDegrees(FMath::Atan2(FVector::Dist(CollisionMesh->GetComponentLocation(), m_LocationLastFrame), TurnLimiter));
-			
-			CollisionMesh->AddLocalRotation(FRotator(0.0f, TurnAmount * ForwardReverseModifier * AxisValue, 0.0f));
-		}
+		m_LocationLastFrame = CollisionMesh->GetComponentLocation();
+		m_RotationToBeMaintained = CollisionMesh->GetComponentRotation();
 	}
-	m_LocationLastFrame = CollisionMesh->GetComponentLocation();
-	m_RotationToBeMaintained = CollisionMesh->GetComponentRotation();
 }
-
-#pragma endregion
-
-#pragma region GasBreak
 
 void ABaseKart::ApplyGasBreak(float AxisValue)
 {
 	if (m_ControlsEnabled)
 	{
-		ServerRPCSendGasBreak(FMath::Clamp(AxisValue, -1.0f, 1.0f));
-		PerformGasBreak(FMath::Clamp(AxisValue, -1.0f, 1.0f));
-	}
-}
-void ABaseKart::ServerRPCSendGasBreak_Implementation(float GasAxis)
-{
-	MulticastRPCGasBreak(GasAxis);
-}
-bool ABaseKart::ServerRPCSendGasBreak_Validate(float GasAxis)
-{
-	if (FMath::Abs(GasAxis) > 1.01f)
-	{
-		return false;                       // This will disconnect the caller
-	}
-	return true;                              // This will allow the RPC to be called
-}
-void ABaseKart::MulticastRPCGasBreak_Implementation(float GasAxis)
-{
-	if (!IsLocallyControlled())
-	{
-		PerformGasBreak(GasAxis);
-	}
-}
-void ABaseKart::PerformGasBreak(float AxisValue)
-{
-
-	if (IsGrounded())
-	{
-		float ForceToApply = 0;
-
-		if (AxisValue > 0)
+		if (IsGrounded())
 		{
-			ForceToApply = m_AccelerationForce * AxisValue;
-		}
-		else {
-			if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) > 20)
+			float ForceToApply = 0;
+
+			if (AxisValue > 0)
 			{
-				ForceToApply = m_BreakForce * AxisValue;
+				ForceToApply = m_AccelerationForce * AxisValue;
 			}
 			else {
-				ForceToApply = m_ReverseForce * AxisValue;
+				if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) > 20)
+				{
+					ForceToApply = m_BreakForce * AxisValue;
+				}
+				else {
+					ForceToApply = m_ReverseForce * AxisValue;
+				}
 			}
-		}
 
-		if (m_Drifting)
-		{
-			ApplyForce((FRotator(0, -m_AutomaticDriftRotation * m_DriftDirection, 0).RotateVector(CollisionMesh->GetForwardVector()) * ForceToApply));
-		}
-		else
-		{
-			ApplyForwardForce(ForceToApply);
+			if (m_Drifting)
+			{
+				ApplyForce((FRotator(0, -m_AutomaticDriftRotation * m_DriftDirection, 0).RotateVector(CollisionMesh->GetForwardVector()) * ForceToApply));
+			}
+			else
+			{
+				ApplyForwardForce(ForceToApply);
+			}
 		}
 	}
 }
-
-#pragma endregion
-
 
 
 void ABaseKart::EnableCameraLag()
@@ -533,7 +600,7 @@ void ABaseKart::HopPressed()
 			if (m_CanTrick)
 			{
 				ApplyForwardImpulse(m_TrickForceAir);
-				SpawnTrickEmitter_Implementation();
+				SpawnEmitter(TrickEmitter);
 				m_HasTrickBoost = true;
 			}
 		}
