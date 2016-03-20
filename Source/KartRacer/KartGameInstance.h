@@ -258,6 +258,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerInfo")
 	FPlayerInfo PlayerInfo;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerInfo")
+		ETabEnum ChangedEquipment;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerInfo")
+		bool EquipmentHasChanged;
+
 	//Database accessors 
 	UFUNCTION(BlueprintCallable, Category = "Database")
 	FBodyStruct GetBodyByID(int32 ID);
@@ -286,4 +292,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
 		int32 LevelUp();
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
+		void ChangeEquipment(ETabEnum Type, int ID);
 };

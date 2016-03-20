@@ -312,7 +312,7 @@ private:
 	void RotationInterpolation(float DeltaTime);
 	void DriftPhysics(float DeltaTime);
 	void SetLinearDamping();
-
+	void UpdateWheelPositions();
 	// Input functions
 	void ApplyGasBreak(float AxisValue);
 	void Turn(float AxisValue);
