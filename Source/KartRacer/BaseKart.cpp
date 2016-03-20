@@ -8,7 +8,7 @@
 
 // Sets default values
 ABaseKart::ABaseKart() :
-	m_WheelRadius(10),
+	m_WheelRadius(13),
 	m_SuspensionLength(30),
 	m_GravityStrength(3000),
 	m_Drifting(false),
@@ -61,6 +61,9 @@ ABaseKart::ABaseKart() :
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	SetTickGroup(TG_PostPhysics);
+
+	
+
 #pragma region ComponentInit
 	CollisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CollisionRoot"));
 	RootComponent = CollisionMesh;
@@ -150,6 +153,8 @@ ABaseKart::ABaseKart() :
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->AttachTo(CameraBoom);
+
+	
 #pragma endregion
 
 }
@@ -162,10 +167,9 @@ void ABaseKart::BeginPlay()
 	m_LocationLastFrame = CollisionMesh->GetComponentLocation();
 	UpdateKartComponents();
 
-	FrontRightArrow->SetWorldLocation(BodyMesh->GetSocketLocation("FrontRight") + BodyMesh->GetUpVector() * FVector(1,1,m_SuspensionLength));
-	FrontLeftArrow->SetWorldLocation(BodyMesh->GetSocketLocation("FrontLeft") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
-	BackRightArrow->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
-	BackLeftArrow->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
+	m_RotationToBeMaintained = CollisionMesh->GetComponentRotation();
+
+	UpdateWheelPositions();
 
 	BSparkRight->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight"));
 	BSparkLeft->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft"));
@@ -252,6 +256,8 @@ void ABaseKart::UpdateKartComponents()
 		if (UpdateBody)
 		{
 			BodyMesh->SetStaticMesh(KartGameInstance->GetBodyByID(Equips.Body).BodyMesh);
+			UpdateBody = false;
+			UpdateWheelPositions();
 		}
 		if (UpdateWheels)
 		{
@@ -259,11 +265,13 @@ void ABaseKart::UpdateKartComponents()
 			{
 				e->SetStaticMesh(KartGameInstance->GetWheelByID(Equips.Wheel).WheelMesh);
 			}
+			UpdateWheels = false;
 		}
 		if (UpdateTrails)
 		{
 			TrailEmitterLeft->SetTemplate(KartGameInstance->GetTrailByID(Equips.Trail).TrailParticle);
 			TrailEmitterRight->SetTemplate(KartGameInstance->GetTrailByID(Equips.Trail).TrailParticle);
+			UpdateTrails = false;
 		}
 		if (UpdateSparks)
 		{
@@ -271,20 +279,24 @@ void ABaseKart::UpdateKartComponents()
 			BSparkRight->SetTemplate(KartGameInstance->GetSparkByID(Equips.Spark).BSparkParticle);
 			RSparkLeft->SetTemplate(KartGameInstance->GetSparkByID(Equips.Spark).RSparkParticle);
 			RSparkRight->SetTemplate(KartGameInstance->GetSparkByID(Equips.Spark).RSparkParticle);
+			UpdateSparks = false;
 		}
 		if (UpdateTrick)
 		{
 			TrickEmitter->SetTemplate(KartGameInstance->GetTrickByID(Equips.Trick).TrickParticle);
+			UpdateTrick = false;
 		}
 		if (UpdatePoof)
 		{
 			PoofEmitter->SetTemplate(KartGameInstance->GetPoofByID(Equips.Poof).PoofParticle);
+			UpdatePoof = false;
 		}
 	}
 	else
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 6.0f, FColor::Red, "Failed to cast game instance to kart game instance");
 	}
+
 }
 
 void ABaseKart::SparkLogic()
@@ -569,6 +581,14 @@ void ABaseKart::SetLinearDamping()
 	{
 		CollisionMesh->SetLinearDamping(0.1f);
 	}
+}
+
+void ABaseKart::UpdateWheelPositions()
+{
+	FrontRightArrow->SetWorldLocation(BodyMesh->GetSocketLocation("FrontRight") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
+	FrontLeftArrow->SetWorldLocation(BodyMesh->GetSocketLocation("FrontLeft") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
+	BackRightArrow->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
+	BackLeftArrow->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
 }
 
 void ABaseKart::LookBackPressed()

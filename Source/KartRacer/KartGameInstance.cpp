@@ -408,3 +408,34 @@ int32 UKartGameInstance::LevelUp()
 	PlayerInfo.ExperiencePoints -= 1000;
 	return PlayerInfo.PlayerLevel;
 }
+
+void UKartGameInstance::ChangeEquipment(ETabEnum Type, int ID)
+{
+
+	ChangedEquipment = Type;
+	EquipmentHasChanged = true;
+
+	switch (Type)
+	{
+	case ETabEnum::VE_Body:
+		PlayerInfo.CurrentlyEquipped.Body = ID;
+		break;
+	case ETabEnum::VE_Wheel:
+		PlayerInfo.CurrentlyEquipped.Wheel = ID;
+		break;
+	case ETabEnum::VE_Spark:
+		PlayerInfo.CurrentlyEquipped.Spark = ID;
+		break;
+	case ETabEnum::VE_Trail:
+		PlayerInfo.CurrentlyEquipped.Trail = ID;
+		break;
+	case ETabEnum::VE_Poof:
+		PlayerInfo.CurrentlyEquipped.Poof = ID;
+		break;
+	case ETabEnum::VE_Trick:
+		PlayerInfo.CurrentlyEquipped.Trick = ID;
+		break;
+	default:
+		break;
+	}
+}
