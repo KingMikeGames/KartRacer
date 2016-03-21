@@ -4,6 +4,7 @@
 #include "BaseKart.h"
 #include "StaticFunctionLibrary.h"
 #include <Kismet/KismetMathLibrary.h>
+#include <Kismet/KismetSystemLibrary.h>
 #include "KartGameInstance.h"
 
 // Sets default values
@@ -163,7 +164,6 @@ ABaseKart::ABaseKart() :
 void ABaseKart::BeginPlay()
 {
 	Super::BeginPlay();
-
 	m_LocationLastFrame = CollisionMesh->GetComponentLocation();
 	UpdateKartComponents();
 
@@ -354,12 +354,9 @@ void ABaseKart::ResetRotation()
 	CollisionMesh->SetWorldRotation(m_RotationToBeMaintained);
 }
 
-
-
-FVector ABaseKart::GetGravityDirection()
+FVector ABaseKart::GetGravityDirection_Implementation()
 {
-	//TODO: Figure out how to get Gravity volumes
-	return FVector(0,0,-1);
+	return FVector(0, 0, -1);
 }
 
 
@@ -372,10 +369,15 @@ void ABaseKart::UpdateSuspension()
 	m_GroundedWheels = 0;
 	m_WheelsOffRoad = 0;
 
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(this);
+
+
 	for (size_t WheelIndex = 0; WheelIndex < Arrows.Num(); WheelIndex++)
 	{
+		
 		FHitResult HitData(ForceInit);
-		bool hit = UStaticFunctionLibrary::Trace(World, NULL, Arrows[WheelIndex]->GetComponentLocation(), Arrows[WheelIndex]->GetComponentLocation() + Arrows[WheelIndex]->GetForwardVector() * (m_SuspensionLength + m_WheelRadius), HitData, ECC_GameTraceChannel1, true);
+		bool hit = UKismetSystemLibrary::SphereTraceSingle_NEW(World, Arrows[WheelIndex]->GetComponentLocation(), Arrows[WheelIndex]->GetComponentLocation() + Arrows[WheelIndex]->GetForwardVector() * (m_SuspensionLength), m_WheelRadius,ETraceTypeQuery::TraceTypeQuery1, true, ActorsToIgnore ,EDrawDebugTrace::ForOneFrame, HitData, ECC_GameTraceChannel1);
 		
 		if (hit)
 		{
@@ -389,7 +391,7 @@ void ABaseKart::UpdateSuspension()
 
 			AverageHeight += (m_SuspensionLength) - ((m_SuspensionLength) * HitData.Time);
 
-			Wheels[WheelIndex]->SetWorldLocation(Arrows[WheelIndex]->GetComponentLocation() + Arrows[WheelIndex]->GetForwardVector() * (m_SuspensionLength + m_WheelRadius) * HitData.Time - (Arrows[WheelIndex]->GetForwardVector() * m_WheelRadius));
+			Wheels[WheelIndex]->SetWorldLocation(Arrows[WheelIndex]->GetComponentLocation() + Arrows[WheelIndex]->GetForwardVector() * (m_SuspensionLength) * HitData.Time);
 			
 		}
 		else {
