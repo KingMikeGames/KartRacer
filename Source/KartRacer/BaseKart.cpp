@@ -50,7 +50,7 @@ ABaseKart::ABaseKart() :
 	m_AirRInterpSpeed(75.0f),
 	m_SlideResistance(1.5),
 	m_OffRoadSlowDownPerWheel(0.25f),
-	m_ControlsEnabled(true),
+	m_ControlsEnabled(false),
 	UpdateSparks(true),
 	UpdateTrails(true),
 	UpdatePoof(true),
@@ -451,7 +451,7 @@ void ABaseKart::DealWithGravity()
 
 void ABaseKart::Turn(float AxisValue)
 {
-
+	AxisValue = FMath::Clamp(AxisValue, -1.0f, 1.0f);
 	TurnValue = AxisValue;
 
 	if (m_ControlsEnabled)
@@ -496,6 +496,8 @@ void ABaseKart::Turn(float AxisValue)
 
 void ABaseKart::ApplyGasBreak(float AxisValue)
 {
+	AxisValue = FMath::Clamp(AxisValue, -1.0f, 1.0f);
+
 	if (m_ControlsEnabled)
 	{
 		if (IsGrounded())
