@@ -197,8 +197,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Visuals")
 		void UpdateKartComponents();
 
+	UFUNCTION(Server, WithValidation, Reliable)
+	void SendKartComponentsToServer(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void SendKartComponentsToAllClients(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof);
+
+	UFUNCTION(BlueprintCallable, Category = "Visuals")
+	void SetKartComponents(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof);
+
 	UFUNCTION(BlueprintCallable, Category = "Visuals")
 		void SparkLogic();
+
+
 
 	UFUNCTION(BluePrintNativeEvent)
 		void SpawnEmitter(UParticleSystemComponent* emitter);
