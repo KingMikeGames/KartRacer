@@ -171,6 +171,13 @@ void ABaseKart::BeginPlay()
 
 	UpdateWheelPositions();
 
+	if (IsLocallyControlled())
+	{
+		UKartGameInstance* KartGameInstance = Cast<UKartGameInstance>(GetGameInstance());
+		FEquipment Equips = KartGameInstance->PlayerInfo.CurrentlyEquipped;
+		SendKartComponentsToServer(Equips.Body, Equips.Wheel, Equips.Trail, Equips.Spark, Equips.Trick, Equips.Poof);
+	}
+
 	BSparkRight->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight"));
 	BSparkLeft->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft"));
 	RSparkRight->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight"));
@@ -178,6 +185,8 @@ void ABaseKart::BeginPlay()
 	TrailEmitterRight->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight"));
 	TrailEmitterLeft->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft"));
 	FrontWheelStart = FrontLeftWheel->GetComponentRotation().Yaw;
+
+	UpdateSuspension();w
 }
 
 // Called every frame
@@ -190,6 +199,8 @@ void ABaseKart::Tick( float DeltaTime )
 		EndDrift();
 	}
 
+	if (IsLocallyControlled())
+	{
 	m_GravityDirection = GetGravityDirection();
 	UpdateSuspension();
 	ResetRotation();
@@ -202,6 +213,7 @@ void ABaseKart::Tick( float DeltaTime )
 	RotationInterpolation(DeltaTime);
 	DriftPhysics(DeltaTime);
 	SetLinearDamping();
+	}
 }
 
 
@@ -299,6 +311,63 @@ void ABaseKart::UpdateKartComponents()
 
 }
 
+bool ABaseKart::SendKartComponentsToServer_Validate(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof)
+{
+	if (Body >= 0 && Wheel >= 0 && Trail >= 0 && Spark >= 0 && Trick >= 0 && Poof >= 00)
+	{
+		return true;
+	}
+	return false;
+}
+
+
+void ABaseKart::SendKartComponentsToServer_Implementation(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof)
+{
+	SendKartComponentsToAllClients(Body, Wheel, Trail, Spark, Trick, Poof);
+}
+
+void ABaseKart::SendKartComponentsToAllClients_Implementation(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof)
+{
+	if (!IsLocallyControlled())
+	{
+		SetKartComponents(Body,  Wheel,  Trail,  Spark,  Trick,  Poof);
+	}
+}
+
+void ABaseKart::SetKartComponents(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof)
+{
+	UKartGameInstance* KartGameInstance = Cast<UKartGameInstance>(GetGameInstance());
+	if (KartGameInstance)
+	{
+		
+			BodyMesh->SetStaticMesh(KartGameInstance->GetBodyByID(Body).BodyMesh);
+			UpdateWheelPositions();
+
+			for (auto e : Wheels)
+			{
+				e->SetStaticMesh(KartGameInstance->GetWheelByID(Wheel).WheelMesh);
+			}
+		
+			TrailEmitterLeft->SetTemplate(KartGameInstance->GetTrailByID(Trail).TrailParticle);
+			TrailEmitterRight->SetTemplate(KartGameInstance->GetTrailByID(Trail).TrailParticle);
+			
+			BSparkLeft->SetTemplate(KartGameInstance->GetSparkByID(Spark).BSparkParticle);
+			BSparkRight->SetTemplate(KartGameInstance->GetSparkByID(Spark).BSparkParticle);
+			RSparkLeft->SetTemplate(KartGameInstance->GetSparkByID(Spark).RSparkParticle);
+			RSparkRight->SetTemplate(KartGameInstance->GetSparkByID(Spark).RSparkParticle);
+			
+			TrickEmitter->SetTemplate(KartGameInstance->GetTrickByID(Trick).TrickParticle);
+			
+			PoofEmitter->SetTemplate(KartGameInstance->GetPoofByID(Poof).PoofParticle);
+			UpdatePoof = false;
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 6.0f, FColor::Red, "Failed to cast game instance to kart game instance");
+	}
+
+}
+
 void ABaseKart::SparkLogic()
 {
 	if (m_Drifting)
@@ -351,7 +420,10 @@ void ABaseKart::SpawnEmitter_Implementation(UParticleSystemComponent* emitter)
 
 void ABaseKart::ResetRotation()
 {
-	CollisionMesh->SetWorldRotation(m_RotationToBeMaintained);
+	if (IsLocallyControlled())
+	{
+		CollisionMesh->SetWorldRotation(m_RotationToBeMaintained);
+	}
 }
 
 FVector ABaseKart::GetGravityDirection_Implementation()
@@ -377,7 +449,7 @@ void ABaseKart::UpdateSuspension()
 	{
 		
 		FHitResult HitData(ForceInit);
-		bool hit = UKismetSystemLibrary::SphereTraceSingle_NEW(World, Arrows[WheelIndex]->GetComponentLocation(), Arrows[WheelIndex]->GetComponentLocation() + Arrows[WheelIndex]->GetForwardVector() * (m_SuspensionLength), m_WheelRadius,ETraceTypeQuery::TraceTypeQuery1, true, ActorsToIgnore ,EDrawDebugTrace::ForOneFrame, HitData, ECC_GameTraceChannel1);
+		bool hit = UKismetSystemLibrary::SphereTraceSingle_NEW(World, Arrows[WheelIndex]->GetComponentLocation(), Arrows[WheelIndex]->GetComponentLocation() + Arrows[WheelIndex]->GetForwardVector() * (m_SuspensionLength), m_WheelRadius,ETraceTypeQuery::TraceTypeQuery1, true, ActorsToIgnore ,EDrawDebugTrace::None, HitData, ECC_GameTraceChannel1);
 		
 		if (hit)
 		{
