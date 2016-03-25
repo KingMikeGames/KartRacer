@@ -201,13 +201,17 @@ void ABaseKart::Tick( float DeltaTime )
 		}
 	}
 
-	if (CollisionMesh->GetPhysicsLinearVelocity().Size() < m_MinDriftSpeed)
+	if (!IsLocallyControlled())
 	{
-		EndDrift();
+		UpdateSuspension();
 	}
 
 	if (IsLocallyControlled())
 	{
+		if (CollisionMesh->GetPhysicsLinearVelocity().Size() < m_MinDriftSpeed)
+		{
+			EndDrift();
+		}
 	m_GravityDirection = GetGravityDirection();
 	UpdateSuspension();
 	ResetRotation();
@@ -325,6 +329,7 @@ bool ABaseKart::SendKartComponentsToServer_Validate(int Body, int Wheel, int Tra
 		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 2");
 		return true;
 	}
+	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts FUCKED UP");
 	return false;
 }
 
