@@ -171,13 +171,7 @@ void ABaseKart::BeginPlay()
 
 	UpdateWheelPositions();
 
-	if (IsLocallyControlled())
-	{
-		UKartGameInstance* KartGameInstance = Cast<UKartGameInstance>(GetGameInstance());
-		FEquipment Equips = KartGameInstance->PlayerInfo.CurrentlyEquipped;
-		SendKartComponentsToServer(Equips.Body, Equips.Wheel, Equips.Trail, Equips.Spark, Equips.Trick, Equips.Poof);
-		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 1");
-	}
+	
 
 	BSparkRight->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight"));
 	BSparkLeft->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft"));
@@ -195,13 +189,24 @@ void ABaseKart::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 
-	if (CollisionMesh->GetPhysicsLinearVelocity().Size() < m_MinDriftSpeed)
+	if (m_ControlsEnabled  && !doOnce)
 	{
-		EndDrift();
+		if (IsLocallyControlled())
+		{
+			doOnce = true;
+			UKartGameInstance* KartGameInstance = Cast<UKartGameInstance>(GetGameInstance());
+			FEquipment Equips = KartGameInstance->PlayerInfo.CurrentlyEquipped;
+			SendKartComponentsToServer(Equips.Body, Equips.Wheel, Equips.Trail, Equips.Spark, Equips.Trick, Equips.Poof);
+			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 1");
+		}
 	}
 
 	if (IsLocallyControlled())
 	{
+		if (CollisionMesh->GetPhysicsLinearVelocity().Size() < m_MinDriftSpeed)
+		{
+			EndDrift();
+		}
 	m_GravityDirection = GetGravityDirection();
 	UpdateSuspension();
 	ResetRotation();
@@ -348,6 +353,7 @@ void ABaseKart::SetKartComponents(int Body, int Wheel, int Trail, int Spark, int
 	
 			BodyMesh->SetStaticMesh(KartGameInstance->GetBodyByID(Body).BodyMesh);
 			UpdateWheelPositions();
+			UpdateSuspension();
 
 			for (auto e : Wheels)
 			{
