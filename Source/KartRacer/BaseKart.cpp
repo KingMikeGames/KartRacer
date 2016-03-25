@@ -201,9 +201,9 @@ void ABaseKart::Tick( float DeltaTime )
 		}
 	}
 
-	if (!IsLocallyControlled())
+	if(!IsLocallyControlled())
 	{
-		UpdateSuspension();
+		UpdateWheelPositions();
 	}
 
 	if (IsLocallyControlled())
