@@ -201,11 +201,6 @@ void ABaseKart::Tick( float DeltaTime )
 		}
 	}
 
-	if(!IsLocallyControlled())
-	{
-		UpdateWheelPositions();
-	}
-
 	if (IsLocallyControlled())
 	{
 		if (CollisionMesh->GetPhysicsLinearVelocity().Size() < m_MinDriftSpeed)
@@ -329,7 +324,6 @@ bool ABaseKart::SendKartComponentsToServer_Validate(int Body, int Wheel, int Tra
 		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 2");
 		return true;
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts FUCKED UP");
 	return false;
 }
 
@@ -359,6 +353,7 @@ void ABaseKart::SetKartComponents(int Body, int Wheel, int Trail, int Spark, int
 	
 			BodyMesh->SetStaticMesh(KartGameInstance->GetBodyByID(Body).BodyMesh);
 			UpdateWheelPositions();
+			UpdateSuspension();
 
 			for (auto e : Wheels)
 			{
