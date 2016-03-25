@@ -186,7 +186,7 @@ void ABaseKart::BeginPlay()
 	TrailEmitterLeft->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft"));
 	FrontWheelStart = FrontLeftWheel->GetComponentRotation().Yaw;
 
-	UpdateSuspension();w
+	UpdateSuspension();
 }
 
 // Called every frame
@@ -703,14 +703,22 @@ void ABaseKart::HopPressed()
 		m_DriftButtonHeld = true;
 		if (IsGrounded())
 		{
-			ApplyImpulse(CollisionMesh->GetUpVector() * m_HopPower);
+			//ApplyImpulse(CollisionMesh->GetUpVector() * m_HopPower);
 			float TurnValue = GetInputAxisValue("Turn");
 			if (TurnValue < -m_DeadZone)
 			{
 				m_DriftDirection = -1;
+				if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) > m_MinDriftSpeed)
+				{
+					LandedInDrift();
+				}
 			}
 			else if (TurnValue > m_DeadZone) {
 				m_DriftDirection = 1;
+				if (FVector::DotProduct(CollisionMesh->GetPhysicsLinearVelocity(), CollisionMesh->GetForwardVector()) > m_MinDriftSpeed)
+				{
+					LandedInDrift();
+				}
 			}
 			else
 			{
