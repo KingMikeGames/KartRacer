@@ -176,6 +176,7 @@ void ABaseKart::BeginPlay()
 		UKartGameInstance* KartGameInstance = Cast<UKartGameInstance>(GetGameInstance());
 		FEquipment Equips = KartGameInstance->PlayerInfo.CurrentlyEquipped;
 		SendKartComponentsToServer(Equips.Body, Equips.Wheel, Equips.Trail, Equips.Spark, Equips.Trick, Equips.Poof);
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 1");
 	}
 
 	BSparkRight->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight"));
@@ -313,8 +314,9 @@ void ABaseKart::UpdateKartComponents()
 
 bool ABaseKart::SendKartComponentsToServer_Validate(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof)
 {
-	if (Body >= 0 && Wheel >= 0 && Trail >= 0 && Spark >= 0 && Trick >= 0 && Poof >= 00)
+	if (Body >= 0 && Wheel >= 0 && Trail >= 0 && Spark >= 0 && Trick >= 0 && Poof >= 0)
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 2");
 		return true;
 	}
 	return false;
@@ -323,6 +325,7 @@ bool ABaseKart::SendKartComponentsToServer_Validate(int Body, int Wheel, int Tra
 
 void ABaseKart::SendKartComponentsToServer_Implementation(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 3");
 	SendKartComponentsToAllClients(Body, Wheel, Trail, Spark, Trick, Poof);
 }
 
@@ -330,6 +333,7 @@ void ABaseKart::SendKartComponentsToAllClients_Implementation(int Body, int Whee
 {
 	if (!IsLocallyControlled())
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 4");
 		SetKartComponents(Body,  Wheel,  Trail,  Spark,  Trick,  Poof);
 	}
 }
@@ -340,6 +344,8 @@ void ABaseKart::SetKartComponents(int Body, int Wheel, int Trail, int Spark, int
 	if (KartGameInstance)
 	{
 		
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 5");
+	
 			BodyMesh->SetStaticMesh(KartGameInstance->GetBodyByID(Body).BodyMesh);
 			UpdateWheelPositions();
 
