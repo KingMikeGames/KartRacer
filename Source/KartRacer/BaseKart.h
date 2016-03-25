@@ -308,7 +308,7 @@ private:
 	bool			m_DriftButtonHeld;
 	bool			m_DriftReady;
 	bool			m_HasTrickBoost;
-	
+	bool			doOnce = false;
 
 	FTimerHandle	m_CameraLagTimerHandle;
 	/* Sets the rotation to RotatationToBeMaintained. 
