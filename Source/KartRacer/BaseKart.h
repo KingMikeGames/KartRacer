@@ -141,6 +141,9 @@ public:
 		bool UpdatePoof;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool UpdatePaint;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool UpdateBody;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -198,13 +201,13 @@ public:
 		void UpdateKartComponents();
 
 	UFUNCTION(Server, WithValidation, Reliable)
-	void SendKartComponentsToServer(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof);
+	void SendKartComponentsToServer(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof, int Paint);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void SendKartComponentsToAllClients(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof);
+	void SendKartComponentsToAllClients(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof, int Paint);
 
 	UFUNCTION(BlueprintCallable, Category = "Visuals")
-	void SetKartComponents(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof);
+	void SetKartComponents(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof, int Paint);
 
 	UFUNCTION(BlueprintCallable, Category = "Visuals")
 		void SparkLogic();

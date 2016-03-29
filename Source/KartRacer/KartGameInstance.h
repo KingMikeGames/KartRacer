@@ -44,6 +44,23 @@ struct FBodyStruct
 };
 
 USTRUCT(BlueprintType)
+struct FPaintStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BodyStruct")
+		int32 ID;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BodyStruct")
+		FName Name;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BodyStruct", meta = (ClampMin = "0", ClampMax = "5", UIMin = "0", UIMax = "5"))
+		int32 Rarity;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BodyStruct")
+		UTexture2D* Icon;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BodyStruct")
+		UMaterial* paint;
+};
+
+USTRUCT(BlueprintType)
 struct FPoofStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -136,6 +153,9 @@ struct FInventoryStruct
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 		TArray<int32> SparkInventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+		TArray<int32> PaintInventory;
 };
 
 USTRUCT(BlueprintType)
@@ -144,7 +164,7 @@ struct FEquipment
 
 	GENERATED_USTRUCT_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
 		int32 Body;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
@@ -211,7 +231,8 @@ enum class ETabEnum : uint8
 	VE_Spark	UMETA(DisplayName = "Spark"),
 	VE_Trail	UMETA(DisplayName = "Trail"),
 	VE_Poof		UMETA(DisplayName = "Poof"),
-	VE_Trick	UMETA(DisplayName = "Trick")
+	VE_Trick	UMETA(DisplayName = "Trick"),
+	VE_Paint	UMETA(DisplayName = "Paint")
 };
 
 UENUM(BlueprintType)		//"BlueprintType" is essential to include
@@ -255,6 +276,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Database")
 		TArray<FSparkStruct> SparkDB;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Database")
+		TArray<FPaintStruct> PaintDB;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerInfo")
 	FPlayerInfo PlayerInfo;
 
@@ -277,7 +301,8 @@ public:
 		FTrickStruct GetTrickByID(int32 ID);
 	UFUNCTION(BlueprintCallable, Category = "Database")
 		FSparkStruct GetSparkByID(int32 ID);
-
+	UFUNCTION(BlueprintCallable, Category = "Database")
+		FPaintStruct GetPaintByID(int32 ID);
 	// Loot Sorting
 	UFUNCTION(BlueprintCallable, Category = "ArraySorting")
 		TArray<int32> SortInventory(TArray<int32> Items, ETabEnum Type, ESortType SortType, EDirection Direction);
