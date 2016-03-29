@@ -57,6 +57,7 @@ ABaseKart::ABaseKart() :
 	UpdateBody(true),
 	UpdateWheels(true),
 	UpdateTrick(true),
+	UpdatePaint(true),
 	TurnValue(0.0f)
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -196,7 +197,7 @@ void ABaseKart::Tick( float DeltaTime )
 			doOnce = true;
 			UKartGameInstance* KartGameInstance = Cast<UKartGameInstance>(GetGameInstance());
 			FEquipment Equips = KartGameInstance->PlayerInfo.CurrentlyEquipped;
-			SendKartComponentsToServer(Equips.Body, Equips.Wheel, Equips.Trail, Equips.Spark, Equips.Trick, Equips.Poof);
+			SendKartComponentsToServer(Equips.Body, Equips.Wheel, Equips.Trail, Equips.Spark, Equips.Trick, Equips.Poof, Equips.Paint);
 			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 1");
 		}
 	}
@@ -274,6 +275,7 @@ void ABaseKart::UpdateKartComponents()
 		if (UpdateBody)
 		{
 			BodyMesh->SetStaticMesh(KartGameInstance->GetBodyByID(Equips.Body).BodyMesh);
+			BodyMesh->SetMaterial(0, KartGameInstance->GetPaintByID(Equips.Paint).paint);
 			UpdateBody = false;
 			UpdateWheelPositions();
 		}
@@ -309,6 +311,11 @@ void ABaseKart::UpdateKartComponents()
 			PoofEmitter->SetTemplate(KartGameInstance->GetPoofByID(Equips.Poof).PoofParticle);
 			UpdatePoof = false;
 		}
+		if (UpdatePaint)
+		{
+			BodyMesh->SetMaterial(0, KartGameInstance->GetPaintByID(Equips.Paint).paint);
+			UpdatePaint = false;
+		}
 	}
 	else
 	{
@@ -317,9 +324,9 @@ void ABaseKart::UpdateKartComponents()
 
 }
 
-bool ABaseKart::SendKartComponentsToServer_Validate(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof)
+bool ABaseKart::SendKartComponentsToServer_Validate(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof, int Paint)
 {
-	if (Body >= 0 && Wheel >= 0 && Trail >= 0 && Spark >= 0 && Trick >= 0 && Poof >= 0)
+	if (Body >= 0 && Wheel >= 0 && Trail >= 0 && Spark >= 0 && Trick >= 0 && Poof >= 0 && Paint >= 0)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 2");
 		return true;
@@ -328,22 +335,22 @@ bool ABaseKart::SendKartComponentsToServer_Validate(int Body, int Wheel, int Tra
 }
 
 
-void ABaseKart::SendKartComponentsToServer_Implementation(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof)
+void ABaseKart::SendKartComponentsToServer_Implementation(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof, int Paint)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 3");
-	SendKartComponentsToAllClients(Body, Wheel, Trail, Spark, Trick, Poof);
+	SendKartComponentsToAllClients(Body, Wheel, Trail, Spark, Trick, Poof, Paint);
 }
 
-void ABaseKart::SendKartComponentsToAllClients_Implementation(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof)
+void ABaseKart::SendKartComponentsToAllClients_Implementation(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof, int Paint)
 {
 	if (!IsLocallyControlled())
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, "Changing Parts 4");
-		SetKartComponents(Body,  Wheel,  Trail,  Spark,  Trick,  Poof);
+		SetKartComponents(Body,  Wheel,  Trail,  Spark,  Trick,  Poof, Paint);
 	}
 }
 
-void ABaseKart::SetKartComponents(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof)
+void ABaseKart::SetKartComponents(int Body, int Wheel, int Trail, int Spark, int Trick, int Poof, int Paint)
 {
 	UKartGameInstance* KartGameInstance = Cast<UKartGameInstance>(GetGameInstance());
 	if (KartGameInstance)
@@ -371,6 +378,7 @@ void ABaseKart::SetKartComponents(int Body, int Wheel, int Trail, int Spark, int
 			TrickEmitter->SetTemplate(KartGameInstance->GetTrickByID(Trick).TrickParticle);
 			
 			PoofEmitter->SetTemplate(KartGameInstance->GetPoofByID(Poof).PoofParticle);
+			BodyMesh->SetMaterial(0, KartGameInstance->GetPaintByID(Paint).paint);
 			UpdatePoof = false;
 	}
 	else

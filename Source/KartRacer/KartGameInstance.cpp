@@ -39,6 +39,11 @@ FSparkStruct UKartGameInstance::GetSparkByID(int32 ID)
 	return SparkDB[ID];
 }
 
+FPaintStruct UKartGameInstance::GetPaintByID(int32 ID)
+{
+	return PaintDB[ID];
+}
+
 TArray<int32> UKartGameInstance::SortInventory(TArray<int32> Items, ETabEnum Type, ESortType SortType, EDirection Direction)
 {
 	TArray<int32> Ret;
@@ -355,6 +360,57 @@ TArray<int32> UKartGameInstance::SortInventory(TArray<int32> Items, ETabEnum Typ
 		break;
 		// Trick sort End ******************************************************************
 	}
+	case ETabEnum::VE_Paint:
+	{
+		// Paint sort start -----------------------------------------------------------
+		TArray<FPaintStruct> Temp;
+		for (size_t i = 0; i < Items.Num(); i++)
+		{
+			Temp.Add(GetPaintByID(Items[i]));
+		}
+		switch (SortType)
+		{
+		case ESortType::VE_AlphaNumeric:
+
+			switch (Direction)
+			{
+			case EDirection::VE_Ascending:
+				Temp.Sort([](const FPaintStruct& One, const FPaintStruct& Two) {
+					return One.Name < Two.Name;
+				});
+				break;
+			case EDirection::VE_Descending:
+				Temp.Sort([](const FPaintStruct& One, const FPaintStruct& Two) {
+					return One.Name > Two.Name;
+				});
+				break;
+			}
+			break;
+
+		case ESortType::VE_Rarity:
+
+			switch (Direction)
+			{
+			case EDirection::VE_Ascending:
+				Temp.Sort([](const FPaintStruct& One, const FPaintStruct& Two) {
+					return One.Rarity < Two.Rarity;
+				});
+				break;
+			case EDirection::VE_Descending:
+				Temp.Sort([](const FPaintStruct& One, const FPaintStruct& Two) {
+					return One.Rarity > Two.Rarity;
+				});
+				break;
+			}
+			break;
+		}
+		for (size_t i = 0; i < Temp.Num(); i++)
+		{
+			Ret.Add(Temp[i].ID);
+		}
+		break;
+		// Paint sort End ******************************************************************
+	}
 	break;
 	}
 
@@ -384,7 +440,7 @@ TArray<int32> UKartGameInstance::GetInventory(ETabEnum Tab)
 		return PlayerInfo.Inventory.TrickInventory;
 		break;
 	default:
-		return PlayerInfo.Inventory.BodyInventory;
+		return PlayerInfo.Inventory.PaintInventory;
 		break;
 	}
 
@@ -434,6 +490,9 @@ void UKartGameInstance::ChangeEquipment(ETabEnum Type, int ID)
 		break;
 	case ETabEnum::VE_Trick:
 		PlayerInfo.CurrentlyEquipped.Trick = ID;
+		break;
+	case ETabEnum::VE_Paint:
+		PlayerInfo.CurrentlyEquipped.Paint = ID;
 		break;
 	default:
 		break;
