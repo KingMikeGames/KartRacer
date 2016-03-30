@@ -6,7 +6,7 @@ public class KartRacer : ModuleRules
 {
 	public KartRacer(TargetInfo Target)
 	{
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "OnlineSubsystem", "OnlineSubsystemNull", "OnlineSubsystemUtils" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "OnlineSubsystem", "OnlineSubsystemNull", "OnlineSubsystemUtils", "UMG", "Slate", "SlateCore" });
  
 		//PrivateDependencyModuleNames.AddRange(new string[] { "OnlineSubsystem" });
 

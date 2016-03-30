@@ -336,6 +336,7 @@ private:
 	void HopPressed();
 	void HopReleased();
 	void UseItem();
+	void ReleaseItem();
 	
 	void PerformGasBreak(float AxisValue);
 
