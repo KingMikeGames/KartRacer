@@ -6,6 +6,7 @@
 #include <Kismet/KismetMathLibrary.h>
 #include <Kismet/KismetSystemLibrary.h>
 #include "KartGameInstance.h"
+#include "BaseKartController.h"
 
 // Sets default values
 ABaseKart::ABaseKart() :
@@ -238,6 +239,7 @@ void ABaseKart::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 	InputComponent->BindAction("DriftHop", IE_Pressed, this, &ABaseKart::HopPressed);
 	InputComponent->BindAction("DriftHop", IE_Released, this, &ABaseKart::HopReleased);
 	InputComponent->BindAction("UseItem", IE_Pressed, this, &ABaseKart::UseItem);
+	InputComponent->BindAction("UseItem", IE_Released, this, &ABaseKart::ReleaseItem);
 }
 
 
@@ -790,6 +792,26 @@ void ABaseKart::UseItem()
 {
 	if (m_ControlsEnabled)
 	{
+		ABaseKartController* kartController = Cast<ABaseKartController>(GetController());
+
+		if (kartController->HasItem)
+		{
+
+		}
+		
+	}
+}
+
+void ABaseKart::ReleaseItem()
+{
+	if (m_ControlsEnabled)
+	{
+		ABaseKartController* kartController = Cast<ABaseKartController>(GetController());
+
+		if (kartController->HasItem)
+		{
+
+		}
 
 	}
 }
