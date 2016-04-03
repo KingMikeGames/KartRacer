@@ -219,6 +219,9 @@ struct FPlayerInfo
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
 		FEquipment CurrentlyEquipped;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerInfo)
+		int32 ItemUnlocks;
 };
 
 
@@ -311,6 +314,16 @@ public:
 		TArray<int32> GetInventory(ETabEnum Tab);
 
 	// player info
+
+	UFUNCTION(BluePrintNativeEvent)
+		void Ding();
+		virtual void Ding_Implementation();
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
+		void UnlockItem()
+	{
+		PlayerInfo.ItemUnlocks--;
+	}
 
 	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
 		int32 AddExperience(int32 points);

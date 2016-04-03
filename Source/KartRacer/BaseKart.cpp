@@ -522,7 +522,7 @@ void ABaseKart::Landed()
 		m_HasTrickBoost = false;
 		ApplyForwardImpulse(m_TrickForceLanded);
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, "Poof");
+	
 	SpawnEmitter(PoofEmitter);
 }
 
@@ -775,6 +775,7 @@ void ABaseKart::EndDrift()
 	m_Drifting = false;
 	m_DriftReady = true;
 	m_DriftButtonHeld = false;
+	m_DriftDirection = 0.0f;
 }
 
 void ABaseKart::LandedInDrift()

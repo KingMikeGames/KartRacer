@@ -212,7 +212,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Visuals")
 		void SparkLogic();
 
-
+	UFUNCTION(BlueprintCallable, Category = "physics")
+	bool IsGrounded();
 
 	UFUNCTION(BluePrintNativeEvent)
 		void SpawnEmitter(UParticleSystemComponent* emitter);
@@ -291,6 +292,8 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
 	class UParticleSystemComponent* PoofEmitter;
 
+	
+	
 
 	FRotator		m_RotationToBeMaintained;
 
@@ -342,6 +345,5 @@ private:
 	
 	void PerformGasBreak(float AxisValue);
 
-	//checks
-	bool IsGrounded();
+	
 };
