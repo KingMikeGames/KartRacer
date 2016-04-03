@@ -447,21 +447,28 @@ TArray<int32> UKartGameInstance::GetInventory(ETabEnum Tab)
 }
 
 
+void UKartGameInstance::Ding_Implementation()
+{
+}
+
 int32 UKartGameInstance::AddExperience(int32 points)
 {
 	PlayerInfo.ExperiencePoints += points * PlayerInfo.ExpMultiplier;
+	FString SP = FString::FromInt(PlayerInfo.ExpMultiplier);
 
 	if (PlayerInfo.ExperiencePoints >= 1000)
 	{
 		LevelUp();
 	}
-	return PlayerInfo.ExperiencePoints;
+	return points;
 }
 
 int32 UKartGameInstance::LevelUp()
 {
 	PlayerInfo.PlayerLevel++;
 	PlayerInfo.ExperiencePoints -= 1000;
+	PlayerInfo.ItemUnlocks++;
+	Ding();
 	return PlayerInfo.PlayerLevel;
 }
 
