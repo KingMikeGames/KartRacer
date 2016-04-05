@@ -6,7 +6,7 @@
 
 UKartGameInstance::UKartGameInstance()
 {
-
+	PlayerInfo.ExpMultiplier = 1.0f;
 }
 
 FBodyStruct UKartGameInstance::GetBodyByID(int32 ID)
@@ -453,9 +453,7 @@ void UKartGameInstance::Ding_Implementation()
 
 int32 UKartGameInstance::AddExperience(int32 points)
 {
-	PlayerInfo.ExperiencePoints += points * PlayerInfo.ExpMultiplier;
-	FString SP = FString::FromInt(PlayerInfo.ExpMultiplier);
-
+	PlayerInfo.ExperiencePoints += points;
 	if (PlayerInfo.ExperiencePoints >= 1000)
 	{
 		LevelUp();
