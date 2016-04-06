@@ -232,9 +232,6 @@ void ABaseKart::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 
 	InputComponent->BindAxis("Accelerate", this, &ABaseKart::ApplyGasBreak);
 	InputComponent->BindAxis("Turn", this, &ABaseKart::Turn);
-
-	InputComponent->BindAction("LookBack", IE_Pressed, this, &ABaseKart::LookBackPressed);
-	InputComponent->BindAction("LookBack", IE_Released, this, &ABaseKart::LookBackReleased);
 	InputComponent->BindAction("DriftHop", IE_Pressed, this, &ABaseKart::HopPressed);
 	InputComponent->BindAction("DriftHop", IE_Released, this, &ABaseKart::HopReleased);
 	InputComponent->BindAction("UseItem", IE_Pressed, this, &ABaseKart::UseItem);
@@ -680,26 +677,6 @@ void ABaseKart::UpdateWheelPositions()
 	FrontLeftArrow->SetWorldLocation(BodyMesh->GetSocketLocation("FrontLeft") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
 	BackRightArrow->SetWorldLocation(BodyMesh->GetSocketLocation("BackRight") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
 	BackLeftArrow->SetWorldLocation(BodyMesh->GetSocketLocation("BackLeft") + BodyMesh->GetUpVector() * FVector(1, 1, m_SuspensionLength));
-}
-
-void ABaseKart::LookBackPressed()
-{
-	if (m_ControlsEnabled)
-	{
-		CameraBoom->bEnableCameraLag = false;
-		CameraBoom->SetRelativeRotation(FRotator(-15.0f, 180.0f, 0.0f));
-		GetWorldTimerManager().SetTimer(m_CameraLagTimerHandle, this, &ABaseKart::EnableCameraLag, 0.1f);
-	}
-}
-
-void ABaseKart::LookBackReleased()
-{
-	if (m_ControlsEnabled)
-	{
-		CameraBoom->bEnableCameraLag = false;
-		CameraBoom->SetRelativeRotation(FRotator(-15.0f, 0.0f, 0.0f));
-		GetWorldTimerManager().SetTimer(m_CameraLagTimerHandle, this, &ABaseKart::EnableCameraLag, 0.1f);
-	}
 }
 
 void ABaseKart::HopPressed()

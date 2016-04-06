@@ -336,8 +336,6 @@ private:
 	// Input functions
 	void ApplyGasBreak(float AxisValue);
 	void Turn(float AxisValue);
-	void LookBackPressed();
-	void LookBackReleased();
 	void HopPressed();
 	void HopReleased();
 	void UseItem();
