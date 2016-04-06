@@ -184,6 +184,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Trick")
 		bool m_InTrickVolume;
 
+	UPROPERTY(BlueprintReadWrite)
+		FRotator m_RotationToBeMaintained;
+
 	// blueprint callable functions
 	UFUNCTION(BlueprintCallable, Category = "Forces")
 		void ApplyForwardForce(float Force);
@@ -292,10 +295,6 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kart", meta = (AllowPrivateAccess = "true"))
 	class UParticleSystemComponent* PoofEmitter;
 
-	
-	
-
-	FRotator		m_RotationToBeMaintained;
 
 	float			m_WheelRadius;
 	
